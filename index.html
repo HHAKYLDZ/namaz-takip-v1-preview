@@ -508,29 +508,100 @@ function showGroupStep(){
   $("onboardProfile").classList.add("hidden");$("onboardGroup").classList.remove("hidden");
 }
 function chooseGroupMode(mode){
-  state.onboardMode=mode;clearSetupError();$("groupForm").classList.remove("hidden");
-  $("chooseCreate").classList.toggle("selected",mode==="create");$("chooseJoin").classList.toggle("selected",mode==="join");
+  state.onboardMode=mode;
+  clearSetupError();
+  $("groupForm").classList.remove("hidden");
+
+  $("chooseCreate").classList.toggle("selected",mode==="create");
+  $("chooseJoin").classList.toggle("selected",mode==="join");
   $("setupGroup").value="";
+
   if(mode==="create"){
-    $("groupLabelSetup").textContent="Grup adı / kodu";
-    $("setupGroup").placeholder="Örn. DOSTLAR";
-    $("groupHint").textContent="Bu kodu arkadaşlarınla paylaşarak onları grubuna davet edebilirsin.";
+    $("groupLabelSetup").textContent="Grup adı";
+    $("setupGroup").placeholder="Örn. Dostlar";
+    $("groupHint").textContent="Grubunu oluşturduğunda sana otomatik bir davet kodu verilecek.";
     $("setupSave").textContent="Grubu Oluştur ve Başla";
   }else{
     $("groupLabelSetup").textContent="Davet kodu";
-    $("setupGroup").placeholder="Örn. DOSTLAR";
-    $("groupHint").textContent="Grubu oluşturan kişinin paylaştığı kodu yaz.";
+    $("setupGroup").placeholder="Örn. ARWMPU";
+    $("groupHint").textContent="Grubu oluşturan kişinin paylaştığı 6 karakterli davet kodunu yaz.";
     $("setupSave").textContent="Gruba Katıl ve Başla";
   }
 }
 function showMain(){$("loading").classList.add("hidden");$("setup").classList.add("hidden");$("main").classList.remove("hidden");$("groupLabel").textContent=state.groupCode;$("todayLabel").textContent=new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium"}).format(new Date());$("cityInput").value=state.city}
 async function ensureAuth(c){const {data:{session}}=await c.auth.getSession();if(session?.user)return session.user;const {data,error}=await c.auth.signInAnonymously();if(error)throw error;return data.user}
 async function claimMe(c){
- let {data,error}=await c.from("members").select("id,name,user_id").eq("group_code",state.groupCode).eq("user_id",state.user.id).maybeSingle();if(error)throw error;
- if(data){state.myName=data.name;localStorage.setItem("nt_name",data.name);return}
- const r=await c.from("members").select("id,name,user_id").eq("group_code",state.groupCode).eq("name",state.myName).maybeSingle();if(r.error)throw r.error;
- if(r.data){if(r.data.user_id&&r.data.user_id!==state.user.id)throw new Error("Bu isim başka bir kullanıcıya bağlı.");if(!r.data.user_id){const u=await c.from("members").update({user_id:state.user.id}).eq("id",r.data.id).is("user_id",null);if(u.error)throw u.error}return}
- const n=await c.from("members").insert({group_code:state.groupCode,name:state.myName,user_id:state.user.id});if(n.error)throw n.error
+  const {data:group,error:groupError}=await c
+    .from("groups")
+    .select("id")
+    .eq("code",state.groupCode)
+    .maybeSingle();
+
+  if(groupError)throw groupError;
+
+  const groupId=group?.id||null;
+
+  let {data,error}=await c
+    .from("members")
+    .select("id,name,user_id,group_id")
+    .eq("group_code",state.groupCode)
+    .eq("user_id",state.user.id)
+    .maybeSingle();
+
+  if(error)throw error;
+
+  if(data){
+    state.myName=data.name;
+    localStorage.setItem("nt_name",data.name);
+
+    if(groupId&&!data.group_id){
+      const u=await c
+        .from("members")
+        .update({group_id:groupId})
+        .eq("id",data.id);
+
+      if(u.error)throw u.error;
+    }
+
+    return;
+  }
+
+  const r=await c
+    .from("members")
+    .select("id,name,user_id,group_id")
+    .eq("group_code",state.groupCode)
+    .eq("name",state.myName)
+    .maybeSingle();
+
+  if(r.error)throw r.error;
+
+  if(r.data){
+    if(r.data.user_id&&r.data.user_id!==state.user.id){
+      throw new Error("Bu isim başka bir kullanıcıya bağlı.");
+    }
+
+    const updateData={user_id:state.user.id};
+    if(groupId)updateData.group_id=groupId;
+
+    const u=await c
+      .from("members")
+      .update(updateData)
+      .eq("id",r.data.id);
+
+    if(u.error)throw u.error;
+    return;
+  }
+
+  const memberData={
+    group_code:state.groupCode,
+    name:state.myName,
+    user_id:state.user.id
+  };
+
+  if(groupId)memberData.group_id=groupId;
+
+  const n=await c.from("members").insert(memberData);
+  if(n.error)throw n.error;
 }
 async function loadData(c){const d=today();const [m,p,q]=await Promise.all([
 c.from("members").select("id,name,user_id,created_at").eq("group_code",state.groupCode).order("created_at"),
@@ -617,21 +688,75 @@ $("profileBack").onclick=showProfileStep;
 $("chooseCreate").onclick=()=>chooseGroupMode("create");
 $("chooseJoin").onclick=()=>chooseGroupMode("join");
 $("setupSave").onclick=async()=>{
-  const n=$("setupName").value.trim(),g=$("setupGroup").value.trim().toUpperCase().replace(/\s+/g,"-"),c=$("setupCity").value.trim()||"Istanbul";
-  if(n.length<2)return setupError("Adını yaz.");
+  const n=$("setupName").value.trim();
+  const input=$("setupGroup").value.trim();
+  const c=$("setupCity").value.trim()||"Istanbul";
+
+  if(n.length<2)return setupError("Adını en az 2 karakter olarak yaz.");
   if(!state.onboardMode)return setupError("Grup oluştur veya gruba katıl seçeneklerinden birini seç.");
-  if(g.length<3)return setupError(state.onboardMode==="join"?"Geçerli davet kodunu yaz.":"Grup kodu en az 3 karakter olmalı.");
+  if(!input)return setupError(
+    state.onboardMode==="create"
+      ?"Grup adını yaz."
+      :"Davet kodunu yaz."
+  );
+
   const client=window.__supabase;
-  if(state.onboardMode==="join"){
-    try{
-      const {data,error}=await client.from("members").select("id").eq("group_code",g).limit(1);
+
+  try{
+    let group;
+
+    if(state.onboardMode==="create"){
+      if(input.length<2)return setupError("Grup adı en az 2 karakter olmalı.");
+
+      const {data,error}=await client.rpc("create_group",{
+        group_name:input
+      });
+
       if(error)throw error;
-      if(!data?.length)return setupError("Bu davet koduyla bir grup bulunamadı.");
-    }catch(e){return setupError("Grup kontrol edilemedi: "+e.message)}
+
+      group=Array.isArray(data)?data[0]:data;
+
+      if(!group?.id||!group?.code){
+        throw new Error("Grup oluşturulamadı.");
+      }
+
+    }else{
+      const code=input.toUpperCase().replace(/\s+/g,"");
+
+      if(code.length!==6){
+        return setupError("Davet kodu 6 karakter olmalı.");
+      }
+
+      const {data,error}=await client
+        .from("groups")
+        .select("id,code,name")
+        .eq("code",code)
+        .maybeSingle();
+
+      if(error)throw error;
+      if(!data)return setupError("Bu davet koduyla bir grup bulunamadı.");
+
+      group=data;
+    }
+
+    state.myName=n;
+    state.groupCode=group.code;
+    state.city=c;
+
+    localStorage.setItem("nt_name",n);
+    localStorage.setItem("nt_group",group.code);
+    localStorage.setItem("nt_group_id",group.id);
+    localStorage.setItem("nt_city",c);
+
+    await start();
+
+  }catch(e){
+    return setupError(
+      (state.onboardMode==="create"
+        ?"Grup oluşturulamadı: "
+        :"Gruba katılınamadı: ")+e.message
+    );
   }
-  state.myName=n;state.groupCode=g;state.city=c;
-  localStorage.setItem("nt_name",n);localStorage.setItem("nt_group",g);localStorage.setItem("nt_city",c);
-  await start();
 };
 $("refreshBtn").onclick=()=>loadData(window.__supabase);$("citySave").onclick=async()=>{const c=$("cityInput").value.trim();if(!c)return;state.city=c;localStorage.setItem("nt_city",c);await loadTimings();const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();if(s)await savePush(s)};$("notifyBtn").onclick=enableNotifications;$("testNotify").onclick=async()=>{if(Notification.permission==="granted")(await navigator.serviceWorker.ready).showNotification("Namaz Takip",{body:"Test bildirimi çalışıyor."})};$("themeBtn").onclick=()=>setDark(!document.documentElement.classList.contains("dark"));$("leaveGroup").onclick=()=>{if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){localStorage.removeItem("nt_group");localStorage.removeItem("nt_name");location.reload()}};$("members").onclick=e=>{const p=e.target.closest(".set-status");if(p)setPrayerStatus(p.dataset.member,p.dataset.prayer,p.dataset.status)};$("qadaList").onclick=e=>{const b=e.target.closest(".qada-decrease");if(b)decreaseQada(b.dataset.prayer)};
 start();
