@@ -1,7 +1,7 @@
 {
   "name": "Namaz Takip",
   "short_name": "Namaz Takip",
-  "description": "Namaz vakitleri, grup takibi, istatistikler ve günlük seriler.",
+  "description": "Namaz, grup, istatistik, hedef ve alışkanlık takibi.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
