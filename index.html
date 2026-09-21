@@ -374,6 +374,14 @@ a{color:var(--gold-soft)}
 
 .pwa-install-btn{border:1px solid rgba(33,201,151,.32)!important;background:rgba(33,201,151,.10)!important;color:var(--text)!important;padding:11px 13px;font-size:12px;font-weight:900}
 
+
+.v1-tabbar{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+.v1-tab{min-height:58px}
+.v1-card{overflow:hidden}
+.mobile-progress-ring{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#21c997 var(--progress,0%),rgba(255,255,255,.08) 0);position:relative}
+.mobile-progress-ring::after{content:"";position:absolute;inset:7px;border-radius:50%;background:#06150f}
+.mobile-progress-ring>span{position:relative;z-index:1;font-size:17px;font-weight:900;color:var(--gold-soft)}
+
 </style>
 
   <meta name="theme-color" content="#06150f">
@@ -446,6 +454,19 @@ a{color:var(--gold-soft)}
 
   <div class="v1-shell px-4 py-5 space-y-4">
     <div id="homePage" class="v1-page active space-y-4">
+
+      <section class="v1-card p-4">
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <div class="text-xs font-black v1-gold">BUGÜN</div>
+            <div class="text-lg font-black mt-1">Namaz İlerlemen</div>
+            <div id="homeProgressText" class="text-xs v1-muted mt-1">0 / 5 vakit tamamlandı</div>
+          </div>
+          <div id="homeProgressRing" class="mobile-progress-ring" style="--progress:0%"><span id="homeProgressPct">0%</span></div>
+        </div>
+        <div id="homeNextPrayerMini" class="mt-3 rounded-2xl border border-white/10 px-3 py-3 text-sm"></div>
+      </section>
+
     <section class="v1-card v1-next p-5">
       <div class="text-sm v1-muted">Sıradaki Namaz</div>
       <div id="nextPrayerName" class="mt-1 text-3xl font-black v1-gold">Vakitler yükleniyor</div>
@@ -814,6 +835,22 @@ function myMember(){return state.members.find(m=>m.user_id===state.user?.id)}
 function homeStatusLabel(st){return st==="done"?"Kıldım":st==="missed"?"Kaçırdım":"Bekliyor"}
 function cleanTime(v){return String(v||"").match(/\d{1,2}:\d{2}/)?.[0]||""}
 function minutesOf(t){const m=cleanTime(t).match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):null}
+
+function renderHomeProgress(){
+  const me=myMember();
+  const done=me?PRAYERS.filter(p=>statusOf(me.id,p.key)==="done").length:0;
+  const pct=Math.round(done/5*100);
+  if($("homeProgressText"))$("homeProgressText").textContent=`${done} / 5 vakit tamamlandı`;
+  if($("homeProgressPct"))$("homeProgressPct").textContent=`${pct}%`;
+  if($("homeProgressRing"))$("homeProgressRing").style.setProperty("--progress",`${pct}%`);
+  const next=getNextPrayer();
+  if($("homeNextPrayerMini")){
+    $("homeNextPrayerMini").innerHTML=next
+      ? `<div class="flex items-center justify-between gap-3"><span class="v1-muted">Sıradaki</span><strong>${next.name} · ${next.time}</strong></div>`
+      : `<div class="v1-muted">Bugünün namaz vakitleri hazır.</div>`;
+  }
+}
+
 function renderHome(){
   const me=myMember();
   const mineDone=me?PRAYERS.filter(p=>statusOf(me.id,p.key)==="done").length:0;
@@ -1019,7 +1056,7 @@ function renderSettingsPage(){
   if($("settingsNotify"))$("settingsNotify").textContent=Notification.permission==="granted"?"Bildirimleri Yenile":"Bildirimleri Aç";
 }
 
-function render(){const total=state.members.length*5,dc=state.prayers.filter(p=>p.status==="done"||p.done).length;$("summary").textContent=state.members.length?`${dc} / ${total} vakit tamamlandı · ${state.members.length} kişi`:"Henüz arkadaş eklenmedi.";$("progress").style.width=(total?Math.round(dc/total*100):0)+"%";$("members").innerHTML=state.members.map(m=>{const mine=m.user_id===state.user?.id;const bs=PRAYERS.map(p=>{const st=statusOf(m.id,p.key),t=state.timings?.[p.api]||"",label=st==="done"?"Kılındı":st==="missed"?"Kaçırıldı":"Beklemede",tone=st==="done"?"bg-emerald-600 text-white":st==="missed"?"bg-amber-500 text-white":"bg-white dark:bg-slate-900";return `<div class="rounded-2xl border p-3 ${tone}"><div class="flex justify-between gap-2"><span>${p.icon}</span><span class="text-xs">${t}</span></div><div class="mt-2 font-extrabold">${p.name}</div><div class="mt-1 text-[10px]">${label}</div>${mine?`<div class="mt-3 grid grid-cols-3 gap-1"><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="done">Kıldım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="missed">Kaçırdım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="pending">Beklemede</button></div>`:`<div class="mt-3 text-[10px] opacity-80">Sadece görüntüleme</div>`}</div>`}).join("");return `<article class="glass rounded-3xl border ${mine?"border-emerald-300":""} p-4"><div class="flex gap-3 mb-3"><div class="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 grid place-items-center font-black">${esc(initials(m.name))}</div><div><b>${esc(m.name)} ${mine?'<span class="text-xs text-emerald-600">(sen)</span>':""}</b><div class="text-xs text-slate-400">${state.prayers.filter(x=>x.member_id===m.id&&(x.status==="done"||x.done)).length}/5 tamamlandı</div></div></div><div class="grid grid-cols-2 sm:grid-cols-5 gap-2">${bs}</div></article>`}).join("");renderQada();renderHome();renderGroupPage();renderPrayersPage();renderStatsPage();renderSettingsPage()}
+function render(){const total=state.members.length*5,dc=state.prayers.filter(p=>p.status==="done"||p.done).length;$("summary").textContent=state.members.length?`${dc} / ${total} vakit tamamlandı · ${state.members.length} kişi`:"Henüz arkadaş eklenmedi.";$("progress").style.width=(total?Math.round(dc/total*100):0)+"%";$("members").innerHTML=state.members.map(m=>{const mine=m.user_id===state.user?.id;const bs=PRAYERS.map(p=>{const st=statusOf(m.id,p.key),t=state.timings?.[p.api]||"",label=st==="done"?"Kılındı":st==="missed"?"Kaçırıldı":"Beklemede",tone=st==="done"?"bg-emerald-600 text-white":st==="missed"?"bg-amber-500 text-white":"bg-white dark:bg-slate-900";return `<div class="rounded-2xl border p-3 ${tone}"><div class="flex justify-between gap-2"><span>${p.icon}</span><span class="text-xs">${t}</span></div><div class="mt-2 font-extrabold">${p.name}</div><div class="mt-1 text-[10px]">${label}</div>${mine?`<div class="mt-3 grid grid-cols-3 gap-1"><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="done">Kıldım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="missed">Kaçırdım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="pending">Beklemede</button></div>`:`<div class="mt-3 text-[10px] opacity-80">Sadece görüntüleme</div>`}</div>`}).join("");return `<article class="glass rounded-3xl border ${mine?"border-emerald-300":""} p-4"><div class="flex gap-3 mb-3"><div class="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 grid place-items-center font-black">${esc(initials(m.name))}</div><div><b>${esc(m.name)} ${mine?'<span class="text-xs text-emerald-600">(sen)</span>':""}</b><div class="text-xs text-slate-400">${state.prayers.filter(x=>x.member_id===m.id&&(x.status==="done"||x.done)).length}/5 tamamlandı</div></div></div><div class="grid grid-cols-2 sm:grid-cols-5 gap-2">${bs}</div></article>`}).join("");renderQada();renderHome();renderHomeProgress();renderGroupPage();renderPrayersPage();renderStatsPage();renderSettingsPage()}
 async function changeQada(prayerKey,delta){const next=Math.max(0,qadaCount(prayerKey)+delta);const {data,error}=await window.__supabase.from("qada_balances").upsert({user_id:state.user.id,group_code:state.groupCode,prayer:prayerKey,count:next,updated_at:new Date().toISOString()},{onConflict:"user_id,group_code,prayer"}).select("prayer,count").single();if(error)throw error;const i=state.qada.findIndex(x=>x.prayer===prayerKey);if(i>=0)state.qada[i]=data;else state.qada.push(data)}
 async function setPrayerStatus(memberId,prayerKey,newStatus){const m=state.members.find(x=>x.id===memberId);if(!m||m.user_id!==state.user.id)return alert("Yalnızca kendi namazlarını işaretleyebilirsin.");const oldStatus=statusOf(memberId,prayerKey);if(oldStatus===newStatus)return;const {data,error}=await window.__supabase.from("prayers").upsert({group_code:state.groupCode,member_id:memberId,prayer_date:today(),prayer:prayerKey,done:newStatus==="done",status:newStatus},{onConflict:"group_code,member_id,prayer_date,prayer"}).select().single();if(error)return alert("Namaz durumu kaydedilemedi: "+error.message);try{if(oldStatus!=="missed"&&newStatus==="missed")await changeQada(prayerKey,1);if(oldStatus==="missed"&&newStatus!=="missed")await changeQada(prayerKey,-1)}catch(e){return alert("Kaza sayısı güncellenemedi: "+e.message)}const i=state.prayers.findIndex(x=>x.member_id===memberId&&x.prayer===prayerKey);if(i>=0)state.prayers[i]=data;else state.prayers.push(data);await loadData(window.__supabase)}
 async function decreaseQada(prayerKey){if(qadaCount(prayerKey)<=0)return;try{await changeQada(prayerKey,-1);await loadData(window.__supabase)}catch(e){alert("Kaza sayısı güncellenemedi: "+e.message)}}
