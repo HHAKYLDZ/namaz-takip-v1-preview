@@ -1,14 +1,13 @@
 {
   "name": "Namaz Takip",
   "short_name": "Namaz Takip",
-  "description": "Namaz vakitlerini, grup takibini ve istatistiklerini takip et.",
+  "description": "Namaz vakitleri, grup takibi ve istatistik uygulaması.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "background_color": "#06150f",
   "theme_color": "#06150f",
   "lang": "tr-TR",
-  "dir": "ltr",
   "icons": [
     {
       "src": "./icon-192.svg",

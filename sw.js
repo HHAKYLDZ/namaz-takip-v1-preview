@@ -1,4 +1,4 @@
-const CACHE="namaz-takip-v1-shell-1";
+const CACHE="namaz-takip-v1-shell-2";
 const APP_SHELL=["./","./index.html","./manifest.json","./icon-192.svg","./icon-512.svg"];
 
 self.addEventListener("install",event=>{
