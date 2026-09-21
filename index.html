@@ -403,6 +403,19 @@ a{color:var(--gold-soft)}
 .v2-rank{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
 .v2-medal{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-weight:950;background:rgba(214,180,92,.12);color:var(--gold-soft)}
 
+
+/* ===== FINAL RELEASE ===== */
+.final-card{padding:16px;border-radius:22px;background:rgba(5,24,19,.64);border:1px solid rgba(255,255,255,.08)}
+.final-stat{font-size:30px;font-weight:950;color:var(--gold-soft)!important}
+.badge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.badge-card{padding:13px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.badge-card.unlocked{background:rgba(214,180,92,.10);border-color:rgba(214,180,92,.30)}
+.badge-icon{font-size:25px}
+.goal-row{padding:13px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.goal-track{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.goal-track>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#13a477,#21c997)}
+@media(min-width:640px){.badge-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 </style>
 
   <meta name="theme-color" content="#06150f">
@@ -627,6 +640,34 @@ a{color:var(--gold-soft)}
         <div id="v2WeekDays" class="grid grid-cols-7 gap-1 mt-4"></div>
       </section>
 
+
+      <section class="final-card">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="v1-section-title">HEDEFLER</div>
+            <div class="font-black mt-1">Bugünkü hedef</div>
+            <div class="text-xs v1-muted mt-1">Tamamlanan vakit sayın</div>
+          </div>
+          <div id="finalDailyGoalValue" class="final-stat">0/5</div>
+        </div>
+        <div class="goal-track mt-4"><div id="finalDailyGoalBar" style="width:0%"></div></div>
+      </section>
+
+      <section class="final-card">
+        <div class="font-black">Başarılar</div>
+        <div class="text-xs v1-muted mt-1 mb-3">Namaz alışkanlığındaki kilometre taşların</div>
+        <div id="finalBadges" class="badge-grid"></div>
+      </section>
+
+      <section class="final-card">
+        <div class="font-black">Aylık Özet</div>
+        <div class="grid grid-cols-3 gap-2 mt-3">
+          <div class="goal-row text-center"><div id="finalMonthDone" class="final-stat text-xl">0</div><div class="text-[10px] v1-muted">KILINAN</div></div>
+          <div class="goal-row text-center"><div id="finalMonthFull" class="final-stat text-xl">0</div><div class="text-[10px] v1-muted">TAM GÜN</div></div>
+          <div class="goal-row text-center"><div id="finalMonthPct" class="final-stat text-xl">0%</div><div class="text-[10px] v1-muted">ORAN</div></div>
+        </div>
+      </section>
+
       <section class="v2-card">
         <div class="font-black">Haftalık Grup Liderliği</div>
         <div class="text-xs v1-muted mt-1">Son 7 gündeki tamamlanan vakitler</div>
@@ -685,6 +726,17 @@ a{color:var(--gold-soft)}
           <div id="settingsCityStatus" class="text-xs v1-muted mt-2"></div>
         </div>
         <button id="settingsNotify" class="settings-action w-full">Bildirimleri Aç / Yenile</button>
+
+        <div class="settings-row mt-3">
+          <div class="font-black">Günlük Hedef</div>
+          <div class="text-xs v1-muted mt-1">V2 hedefini cihazında sakla.</div>
+          <div class="flex gap-2 mt-3">
+            <input id="dailyGoalInput" type="number" min="1" max="5" class="profile-input min-w-0 flex-1 rounded-2xl border px-4 py-3" placeholder="5">
+            <button id="dailyGoalSave" class="settings-action shrink-0">Kaydet</button>
+          </div>
+          <div id="dailyGoalStatus" class="text-xs v1-muted mt-2"></div>
+        </div>
+
         <div class="settings-row mt-3">
           <div class="font-black">Namaz Bildirimleri</div>
           <div class="text-xs v1-muted mt-1">Bildirim izni ve tercihlerin bu cihazda saklanır.</div>
@@ -1098,8 +1150,68 @@ function renderV2Stats(){
     :`<div class="text-sm v1-muted">Henüz haftalık veri yok.</div>`;
 }
 
+
+function finalGoal(){
+  const n=Number(localStorage.getItem("nt_daily_goal")||5);
+  return Math.max(1,Math.min(5,Number.isFinite(n)?n:5));
+}
+function finalMemberDoneOnDate(memberId,date){
+  return v2DoneForDate(date,memberId);
+}
+function finalMonthStats(memberId){
+  let done=0,full=0;
+  const now=new Date(), days=now.getDate();
+  for(let i=0;i<days;i++){
+    const d=localDateOffset(-i);
+    const n=finalMemberDoneOnDate(memberId,d);
+    done+=n;
+    if(n===5)full++;
+  }
+  return {done,full,total:days*5};
+}
+function finalBadgeData(memberId){
+  const month=finalMonthStats(memberId);
+  const streak=v2Streak(memberId);
+  let lifetime=0;
+  state.historyPrayers.filter(x=>x.member_id===memberId && (x.status==="done"||x.done)).forEach(()=>lifetime++);
+  return [
+    ["🌙","İlk Adım",lifetime>=1,"İlk namaz kaydını oluşturdun."],
+    ["🔥","3 Gün Seri",streak>=3,"Aralıksız 3 tam gün."],
+    ["🔥","7 Gün Seri",streak>=7,"Aralıksız 7 tam gün."],
+    ["🏆","30 Vakit",lifetime>=30,"Toplam 30 vakit tamamlandı."],
+    ["🏆","100 Vakit",lifetime>=100,"Toplam 100 vakit tamamlandı."],
+    ["📅","Tam Gün",month.full>=1,"Bu ay en az bir tam gün."],
+    ["⭐","7 Tam Gün",month.full>=7,"Bu ay 7 tam gün tamamlandı."],
+    ["💎","Ayın Düzeni",month.total>0 && month.done/month.total>=.9,"Bu ay %90+ tamamlama."]
+  ];
+}
+function renderFinalStats(){
+  const me=myMember(), id=me?.id;
+  const done=id?v2DoneForDate(localDateOffset(0),id):0;
+  const goal=finalGoal();
+  const pct=Math.min(100,Math.round(done/goal*100));
+  if($("finalDailyGoalValue"))$("finalDailyGoalValue").textContent=`${done}/${goal}`;
+  if($("finalDailyGoalBar"))$("finalDailyGoalBar").style.width=`${pct}%`;
+
+  const month=id?finalMonthStats(id):{done:0,full:0,total:0};
+  if($("finalMonthDone"))$("finalMonthDone").textContent=month.done;
+  if($("finalMonthFull"))$("finalMonthFull").textContent=month.full;
+  if($("finalMonthPct"))$("finalMonthPct").textContent=month.total?`${Math.round(month.done/month.total*100)}%`:"0%";
+
+  if($("finalBadges")){
+    $("finalBadges").innerHTML=finalBadgeData(id||"").map(b=>`
+      <div class="badge-card ${b[2]?"unlocked":""}">
+        <div class="badge-icon">${b[0]}</div>
+        <div class="font-black mt-2">${b[1]}</div>
+        <div class="text-[10px] v1-muted mt-1">${b[3]}</div>
+        <div class="text-[10px] mt-2 font-black ${b[2]?"v1-gold":"v1-muted"}">${b[2]?"KAZANILDI":"KİLİTLİ"}</div>
+      </div>`).join("");
+  }
+}
+
 function renderStatsPage(){
   renderV2Stats();
+  renderFinalStats();
   const me=myMember();
   const mine=me?PRAYERS.filter(p=>statusOf(me.id,p.key)==="done").length:0;
   const total=state.members.length*5;
@@ -1171,6 +1283,7 @@ function renderSettingsPage(){
   if($("settingsCity"))$("settingsCity").value=state.city||"Istanbul";
   if($("settingsCityStatus"))$("settingsCityStatus").textContent=`Namaz vakitleri ${state.city||"Istanbul"} için kullanılıyor.`;
   if($("settingsNotify"))$("settingsNotify").textContent=("Notification" in window && Notification.permission==="granted")?"Bildirimleri Yenile":"Bildirimleri Aç";
+  if($("dailyGoalInput") && document.activeElement!==$("dailyGoalInput"))$("dailyGoalInput").value=finalGoal();
   const uid=state.user?.id||"—";
   if($("sessionInfo"))$("sessionInfo").textContent=`Kullanıcı oturumu aktif · ${uid.slice(0,8)}${uid!=="—"?"…":""}`;
   if($("sessionBadge"))$("sessionBadge").textContent=state.user?"Oturum aktif":"Oturum bekleniyor";
@@ -1411,7 +1524,7 @@ $("settingsReload").onclick=async()=>{
 };
 $("settingsReset").onclick=()=>{
   if(!confirm("Bu cihazdaki profil ve grup bağlantısı sıfırlansın mı?"))return;
-  ["nt_group","nt_group_id","nt_name","nt_city","nt_notify_prefs"].forEach(k=>localStorage.removeItem(k));
+  ["nt_group","nt_group_id","nt_name","nt_city","nt_notify_prefs","nt_daily_goal"].forEach(k=>localStorage.removeItem(k));
   toast("Kurulum sıfırlanıyor…");
   setTimeout(()=>location.reload(),450);
 };
@@ -1429,6 +1542,14 @@ $("settingsCitySave").onclick=async()=>{
     if(s)await savePush(s);
   }catch{}
   renderSettingsPage();
+};
+
+$("dailyGoalSave").onclick=()=>{
+  const n=Math.max(1,Math.min(5,Number($("dailyGoalInput").value||5)));
+  localStorage.setItem("nt_daily_goal",String(n));
+  if($("dailyGoalStatus"))$("dailyGoalStatus").textContent=`Günlük hedef ${n} vakit olarak kaydedildi.`;
+  renderFinalStats();
+  toast("Günlük hedef kaydedildi.");
 };
 $("settingsNotify").onclick=async()=>{await enableNotifications();renderSettingsPage()};
 $("notifyPrayerToggle").onchange=()=>{
