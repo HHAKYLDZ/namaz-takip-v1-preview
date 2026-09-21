@@ -346,6 +346,17 @@ a{color:var(--gold-soft)}
 .group-member-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:18px;background:rgba(5,24,19,.62);border:1px solid rgba(255,255,255,.08)}
 .group-avatar{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:rgba(33,201,151,.13);color:var(--gold-soft);font-weight:900;flex:0 0 auto}
 
+
+/* ===== V1 Namazlar / İstatistik / Ayarlar ===== */
+.v1-section-title{font-size:12px;font-weight:900;letter-spacing:.08em;color:var(--gold-soft)!important}
+.prayer-detail-row{padding:14px;border-radius:20px;background:rgba(5,24,19,.62);border:1px solid rgba(255,255,255,.08)}
+.prayer-status-btn{border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.055)!important;color:var(--text)!important;padding:9px 7px;font-size:11px;font-weight:800}
+.prayer-status-btn.selected-done{background:rgba(33,201,151,.18)!important;border-color:rgba(33,201,151,.55)!important}
+.prayer-status-btn.selected-missed{background:rgba(214,180,92,.16)!important;border-color:rgba(214,180,92,.52)!important}
+.stat-number{font-size:28px;font-weight:900;color:var(--gold-soft)!important}
+.settings-row{padding:14px;border-radius:20px;background:rgba(5,24,19,.62);border:1px solid rgba(255,255,255,.08)}
+.settings-action{border:1px solid rgba(214,180,92,.22)!important;background:rgba(255,255,255,.055)!important;color:var(--text)!important;padding:11px 13px;font-size:12px;font-weight:800}
+
 </style>
 
 </head>
@@ -494,6 +505,72 @@ a{color:var(--gold-soft)}
         <div class="font-black">Üyeler</div>
         <div class="text-xs v1-muted mt-1 mb-3">Grubundaki kişiler ve bugünkü ilerlemeleri</div>
         <div id="groupMembersList" class="space-y-2"></div>
+      </section>
+    </div>
+
+
+    <div id="prayersPage" class="v1-page space-y-4">
+      <section class="v1-card p-5">
+        <div class="v1-section-title">NAMAZLAR</div>
+        <h2 class="mt-2 text-2xl font-black">Bugünün Namazları</h2>
+        <p class="mt-1 text-sm v1-muted">Her vakti buradan Kıldım, Kaçırdım veya Bekliyor olarak işaretleyebilirsin.</p>
+      </section>
+      <section class="v1-card p-4">
+        <div id="prayersPageList" class="space-y-3"></div>
+      </section>
+      <section class="v1-card p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div><div class="font-black">Kaza Bakiyesi</div><div class="text-xs v1-muted mt-1">Toplam kaza namazı sayın</div></div>
+          <div id="prayersQadaTotal" class="rounded-2xl px-4 py-2 text-lg font-black v1-gold">0</div>
+        </div>
+        <div id="prayersQadaList" class="mt-3 space-y-2"></div>
+      </section>
+    </div>
+
+    <div id="statsPage" class="v1-page space-y-4">
+      <section class="v1-card p-5">
+        <div class="v1-section-title">İSTATİSTİK</div>
+        <h2 class="mt-2 text-2xl font-black">Bugünkü Özet</h2>
+        <p class="mt-1 text-sm v1-muted">Şimdilik bugünün kişisel ve grup ilerlemesini gösterir.</p>
+      </section>
+      <section class="grid grid-cols-2 gap-3">
+        <div class="v1-card p-4"><div class="text-xs v1-muted">Sen</div><div id="statsMine" class="stat-number mt-1">0/5</div><div class="text-xs v1-muted">tamamlanan vakit</div></div>
+        <div class="v1-card p-4"><div class="text-xs v1-muted">Grup</div><div id="statsGroup" class="stat-number mt-1">0%</div><div class="text-xs v1-muted">bugünkü ilerleme</div></div>
+      </section>
+      <section class="v1-card p-4">
+        <div class="font-black">Grup Sıralaması</div>
+        <div class="text-xs v1-muted mt-1 mb-3">Bugün tamamlanan vakit sayısına göre</div>
+        <div id="statsMembers" class="space-y-2"></div>
+      </section>
+    </div>
+
+    <div id="settingsPage" class="v1-page space-y-4">
+      <section class="v1-card p-5">
+        <div class="v1-section-title">AYARLAR</div>
+        <h2 class="mt-2 text-2xl font-black">Uygulama Ayarları</h2>
+        <p class="mt-1 text-sm v1-muted">Profil, şehir, bildirim ve grup bağlantını yönet.</p>
+      </section>
+
+      <section class="v1-card p-4 space-y-3">
+        <div class="settings-row">
+          <label class="block text-xs font-black v1-gold mb-2">GÖRÜNEN ADIN</label>
+          <div id="settingsName" class="font-black">—</div>
+        </div>
+        <div class="settings-row">
+          <label for="settingsCity" class="block text-xs font-black v1-gold mb-2">ŞEHİR</label>
+          <div class="flex gap-2">
+            <input id="settingsCity" maxlength="50" class="min-w-0 flex-1 rounded-2xl border px-4 py-3" placeholder="Istanbul">
+            <button id="settingsCitySave" class="settings-action shrink-0">Kaydet</button>
+          </div>
+          <div id="settingsCityStatus" class="text-xs v1-muted mt-2"></div>
+        </div>
+        <button id="settingsNotify" class="settings-action w-full">Bildirimleri Aç / Yenile</button>
+      </section>
+
+      <section class="v1-card p-4">
+        <div class="font-black">Grup</div>
+        <div class="text-xs v1-muted mt-1">Bu cihazdaki grup bağlantısını kaldırabilirsin.</div>
+        <button id="settingsLeaveGroup" class="mt-3 w-full rounded-2xl border border-rose-200 px-4 py-3 text-sm font-black text-rose-600">Bu Cihazda Gruptan Çık</button>
       </section>
     </div>
 
@@ -729,14 +806,59 @@ async function loadGroupInfo(c){
   renderGroupPage();
 }
 function showV1Page(tab){
-  const target=tab==="group"?"groupPage":"homePage";
+  const pages={home:"homePage",prayers:"prayersPage",group:"groupPage",stats:"statsPage",settings:"settingsPage"};
+  const target=pages[tab]||"homePage";
   document.querySelectorAll(".v1-page").forEach(el=>el.classList.remove("active"));
   $(target)?.classList.add("active");
   document.querySelectorAll(".v1-tab").forEach(btn=>btn.classList.toggle("active",btn.dataset.tab===tab));
+  if(tab==="prayers")renderPrayersPage();
+  if(tab==="group")renderGroupPage();
+  if(tab==="stats")renderStatsPage();
+  if(tab==="settings")renderSettingsPage();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-function render(){const total=state.members.length*5,dc=state.prayers.filter(p=>p.status==="done"||p.done).length;$("summary").textContent=state.members.length?`${dc} / ${total} vakit tamamlandı · ${state.members.length} kişi`:"Henüz arkadaş eklenmedi.";$("progress").style.width=(total?Math.round(dc/total*100):0)+"%";$("members").innerHTML=state.members.map(m=>{const mine=m.user_id===state.user?.id;const bs=PRAYERS.map(p=>{const st=statusOf(m.id,p.key),t=state.timings?.[p.api]||"",label=st==="done"?"Kılındı":st==="missed"?"Kaçırıldı":"Beklemede",tone=st==="done"?"bg-emerald-600 text-white":st==="missed"?"bg-amber-500 text-white":"bg-white dark:bg-slate-900";return `<div class="rounded-2xl border p-3 ${tone}"><div class="flex justify-between gap-2"><span>${p.icon}</span><span class="text-xs">${t}</span></div><div class="mt-2 font-extrabold">${p.name}</div><div class="mt-1 text-[10px]">${label}</div>${mine?`<div class="mt-3 grid grid-cols-3 gap-1"><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="done">Kıldım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="missed">Kaçırdım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="pending">Beklemede</button></div>`:`<div class="mt-3 text-[10px] opacity-80">Sadece görüntüleme</div>`}</div>`}).join("");return `<article class="glass rounded-3xl border ${mine?"border-emerald-300":""} p-4"><div class="flex gap-3 mb-3"><div class="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 grid place-items-center font-black">${esc(initials(m.name))}</div><div><b>${esc(m.name)} ${mine?'<span class="text-xs text-emerald-600">(sen)</span>':""}</b><div class="text-xs text-slate-400">${state.prayers.filter(x=>x.member_id===m.id&&(x.status==="done"||x.done)).length}/5 tamamlandı</div></div></div><div class="grid grid-cols-2 sm:grid-cols-5 gap-2">${bs}</div></article>`}).join("");renderQada();renderHome();renderGroupPage()}
+
+function renderPrayersPage(){
+  const me=myMember();
+  if($("prayersPageList"))$("prayersPageList").innerHTML=PRAYERS.map(p=>{
+    const st=me?statusOf(me.id,p.key):"pending";
+    const t=cleanTime(state.timings?.[p.api])||"—";
+    return `<div class="prayer-detail-row">
+      <div class="flex items-center justify-between gap-3">
+        <div><div class="font-black">${p.icon} ${p.name}</div><div class="text-xs v1-muted mt-1">${t}</div></div>
+        <div class="text-xs font-black ${st==="done"?"text-emerald-400":st==="missed"?"v1-gold":"v1-muted"}">${homeStatusLabel(st)}</div>
+      </div>
+      ${me?`<div class="grid grid-cols-3 gap-2 mt-3">
+        <button class="prayer-status-btn ${st==="done"?"selected-done":""}" data-v1-prayer="${p.key}" data-v1-status="done">Kıldım</button>
+        <button class="prayer-status-btn ${st==="missed"?"selected-missed":""}" data-v1-prayer="${p.key}" data-v1-status="missed">Kaçırdım</button>
+        <button class="prayer-status-btn" data-v1-prayer="${p.key}" data-v1-status="pending">Bekliyor</button>
+      </div>`:""}
+    </div>`;
+  }).join("");
+  const total=PRAYERS.reduce((sum,p)=>sum+qadaCount(p.key),0);
+  if($("prayersQadaTotal"))$("prayersQadaTotal").textContent=String(total);
+  if($("prayersQadaList"))$("prayersQadaList").innerHTML=PRAYERS.map(p=>`<div class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2"><div><div class="font-bold">${p.icon} ${p.name}</div><div class="text-xs v1-muted">${qadaCount(p.key)} kaza</div></div><button class="qada-page-decrease group-action" data-qada-prayer="${p.key}" ${qadaCount(p.key)<=0?"disabled":""}>1 kaza kıldım</button></div>`).join("");
+}
+function renderStatsPage(){
+  const me=myMember();
+  const mine=me?PRAYERS.filter(p=>statusOf(me.id,p.key)==="done").length:0;
+  const total=state.members.length*5;
+  const done=state.prayers.filter(p=>p.status==="done"||p.done).length;
+  const pct=total?Math.round(done/total*100):0;
+  if($("statsMine"))$("statsMine").textContent=`${mine}/5`;
+  if($("statsGroup"))$("statsGroup").textContent=`${pct}%`;
+  const ranked=[...state.members].map(m=>({m,done:PRAYERS.filter(p=>statusOf(m.id,p.key)==="done").length})).sort((a,b)=>b.done-a.done);
+  if($("statsMembers"))$("statsMembers").innerHTML=ranked.length?ranked.map((x,i)=>`<div class="group-member-row"><div class="flex items-center gap-3 min-w-0"><div class="group-avatar">${i+1}</div><div class="min-w-0"><div class="font-black truncate">${esc(x.m.name)}${x.m.user_id===state.user?.id?' <span class="v1-gold text-[10px]">(sen)</span>':""}</div><div class="text-xs v1-muted mt-1">Bugünkü ilerleme</div></div></div><div class="font-black v1-gold">${x.done}/5</div></div>`).join(""):`<div class="text-sm v1-muted">Henüz istatistik yok.</div>`;
+}
+function renderSettingsPage(){
+  if($("settingsName"))$("settingsName").textContent=state.myName||"—";
+  if($("settingsCity"))$("settingsCity").value=state.city||"Istanbul";
+  if($("settingsCityStatus"))$("settingsCityStatus").textContent=`Namaz vakitleri ${state.city||"Istanbul"} için kullanılıyor.`;
+  if($("settingsNotify"))$("settingsNotify").textContent=Notification.permission==="granted"?"Bildirimleri Yenile":"Bildirimleri Aç";
+}
+
+function render(){const total=state.members.length*5,dc=state.prayers.filter(p=>p.status==="done"||p.done).length;$("summary").textContent=state.members.length?`${dc} / ${total} vakit tamamlandı · ${state.members.length} kişi`:"Henüz arkadaş eklenmedi.";$("progress").style.width=(total?Math.round(dc/total*100):0)+"%";$("members").innerHTML=state.members.map(m=>{const mine=m.user_id===state.user?.id;const bs=PRAYERS.map(p=>{const st=statusOf(m.id,p.key),t=state.timings?.[p.api]||"",label=st==="done"?"Kılındı":st==="missed"?"Kaçırıldı":"Beklemede",tone=st==="done"?"bg-emerald-600 text-white":st==="missed"?"bg-amber-500 text-white":"bg-white dark:bg-slate-900";return `<div class="rounded-2xl border p-3 ${tone}"><div class="flex justify-between gap-2"><span>${p.icon}</span><span class="text-xs">${t}</span></div><div class="mt-2 font-extrabold">${p.name}</div><div class="mt-1 text-[10px]">${label}</div>${mine?`<div class="mt-3 grid grid-cols-3 gap-1"><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="done">Kıldım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="missed">Kaçırdım</button><button class="set-status rounded-lg border border-white/40 bg-white/20 px-1 py-2 text-[10px] font-bold" data-member="${m.id}" data-prayer="${p.key}" data-status="pending">Beklemede</button></div>`:`<div class="mt-3 text-[10px] opacity-80">Sadece görüntüleme</div>`}</div>`}).join("");return `<article class="glass rounded-3xl border ${mine?"border-emerald-300":""} p-4"><div class="flex gap-3 mb-3"><div class="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 grid place-items-center font-black">${esc(initials(m.name))}</div><div><b>${esc(m.name)} ${mine?'<span class="text-xs text-emerald-600">(sen)</span>':""}</b><div class="text-xs text-slate-400">${state.prayers.filter(x=>x.member_id===m.id&&(x.status==="done"||x.done)).length}/5 tamamlandı</div></div></div><div class="grid grid-cols-2 sm:grid-cols-5 gap-2">${bs}</div></article>`}).join("");renderQada();renderHome();renderGroupPage();renderPrayersPage();renderStatsPage();renderSettingsPage()}
 async function changeQada(prayerKey,delta){const next=Math.max(0,qadaCount(prayerKey)+delta);const {data,error}=await window.__supabase.from("qada_balances").upsert({user_id:state.user.id,group_code:state.groupCode,prayer:prayerKey,count:next,updated_at:new Date().toISOString()},{onConflict:"user_id,group_code,prayer"}).select("prayer,count").single();if(error)throw error;const i=state.qada.findIndex(x=>x.prayer===prayerKey);if(i>=0)state.qada[i]=data;else state.qada.push(data)}
 async function setPrayerStatus(memberId,prayerKey,newStatus){const m=state.members.find(x=>x.id===memberId);if(!m||m.user_id!==state.user.id)return alert("Yalnızca kendi namazlarını işaretleyebilirsin.");const oldStatus=statusOf(memberId,prayerKey);if(oldStatus===newStatus)return;const {data,error}=await window.__supabase.from("prayers").upsert({group_code:state.groupCode,member_id:memberId,prayer_date:today(),prayer:prayerKey,done:newStatus==="done",status:newStatus},{onConflict:"group_code,member_id,prayer_date,prayer"}).select().single();if(error)return alert("Namaz durumu kaydedilemedi: "+error.message);try{if(oldStatus!=="missed"&&newStatus==="missed")await changeQada(prayerKey,1);if(oldStatus==="missed"&&newStatus!=="missed")await changeQada(prayerKey,-1)}catch(e){return alert("Kaza sayısı güncellenemedi: "+e.message)}const i=state.prayers.findIndex(x=>x.member_id===memberId&&x.prayer===prayerKey);if(i>=0)state.prayers[i]=data;else state.prayers.push(data);await loadData(window.__supabase)}
 async function decreaseQada(prayerKey){if(qadaCount(prayerKey)<=0)return;try{await changeQada(prayerKey,-1);await loadData(window.__supabase)}catch(e){alert("Kaza sayısı güncellenemedi: "+e.message)}}
@@ -750,10 +872,15 @@ setInterval(()=>{if(!$("main").classList.contains("hidden"))updateNextPrayer()},
 
 document.addEventListener("click",e=>{
   const tab=e.target.closest(".v1-tab");
-  if(!tab)return;
-  const name=tab.dataset.tab;
-  if(name==="home"||name==="group"){showV1Page(name);if(name==="group")renderGroupPage();return}
-  alert("Bu bölüm Namaz Takip 1.0 geliştirmesinde sıradaki adımlarda eklenecek.");
+  if(tab){showV1Page(tab.dataset.tab);return}
+  const prayer=e.target.closest(".prayer-status-btn");
+  if(prayer){
+    const me=myMember();
+    if(me)setPrayerStatus(me.id,prayer.dataset.v1Prayer,prayer.dataset.v1Status);
+    return;
+  }
+  const qada=e.target.closest(".qada-page-decrease");
+  if(qada){decreaseQada(qada.dataset.qadaPrayer);return}
 });
 $("copyGroupCode").onclick=async()=>{
   const code=state.groupCode||"";if(!code)return;
@@ -847,6 +974,31 @@ $("setupSave").onclick=async()=>{
     );
   }
 };
+
+$("settingsCitySave").onclick=async()=>{
+  const city=$("settingsCity").value.trim();
+  if(!city)return;
+  state.city=city;
+  localStorage.setItem("nt_city",city);
+  $("cityInput").value=city;
+  $("settingsCityStatus").textContent="Vakitler güncelleniyor…";
+  await loadTimings();
+  try{
+    const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();
+    if(s)await savePush(s);
+  }catch{}
+  renderSettingsPage();
+};
+$("settingsNotify").onclick=async()=>{await enableNotifications();renderSettingsPage()};
+$("settingsLeaveGroup").onclick=()=>{
+  if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){
+    localStorage.removeItem("nt_group");
+    localStorage.removeItem("nt_group_id");
+    localStorage.removeItem("nt_name");
+    location.reload();
+  }
+};
+
 $("refreshBtn").onclick=()=>loadData(window.__supabase);$("citySave").onclick=async()=>{const c=$("cityInput").value.trim();if(!c)return;state.city=c;localStorage.setItem("nt_city",c);await loadTimings();const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();if(s)await savePush(s)};$("notifyBtn").onclick=enableNotifications;$("testNotify").onclick=async()=>{if(Notification.permission==="granted")(await navigator.serviceWorker.ready).showNotification("Namaz Takip",{body:"Test bildirimi çalışıyor."})};$("themeBtn").onclick=()=>setDark(!document.documentElement.classList.contains("dark"));$("leaveGroup").onclick=()=>{if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){localStorage.removeItem("nt_group");localStorage.removeItem("nt_name");location.reload()}};$("members").onclick=e=>{const p=e.target.closest(".set-status");if(p)setPrayerStatus(p.dataset.member,p.dataset.prayer,p.dataset.status)};$("qadaList").onclick=e=>{const b=e.target.closest(".qada-decrease");if(b)decreaseQada(b.dataset.prayer)};
 start();
 })();
