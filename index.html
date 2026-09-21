@@ -394,6 +394,15 @@ a{color:var(--gold-soft)}
 .session-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;border:1px solid rgba(33,201,151,.22);background:rgba(33,201,151,.08);font-size:10px;font-weight:900}
 .danger-action{border:1px solid rgba(244,114,94,.30)!important;background:rgba(244,114,94,.07)!important;color:#f4a090!important}
 
+
+.v2-card{padding:16px;border-radius:22px;background:rgba(5,24,19,.62);border:1px solid rgba(255,255,255,.08)}
+.v2-streak{font-size:34px;font-weight:950;color:var(--gold-soft)!important}
+.v2-day{padding:10px 6px;border-radius:16px;text-align:center;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.v2-day.done{background:rgba(33,201,151,.12);border-color:rgba(33,201,151,.30)}
+.v2-day.partial{background:rgba(214,180,92,.10);border-color:rgba(214,180,92,.22)}
+.v2-rank{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.v2-medal{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-weight:950;background:rgba(214,180,92,.12);color:var(--gold-soft)}
+
 </style>
 
   <meta name="theme-color" content="#06150f">
@@ -602,6 +611,28 @@ a{color:var(--gold-soft)}
         <div class="text-xs v1-muted mt-1 mb-3">Bugün tamamlanan vakit sayısına göre</div>
         <div id="statsMembers" class="space-y-2"></div>
       </section>
+
+      <section class="v2-card">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="v1-section-title">V2</div>
+            <div class="text-lg font-black mt-1">Serin</div>
+            <div class="text-xs v1-muted mt-1">Aralıksız tam gün sayın</div>
+          </div>
+          <div class="text-right">
+            <div id="v2Streak" class="v2-streak">0</div>
+            <div class="text-[10px] v1-muted">GÜN</div>
+          </div>
+        </div>
+        <div id="v2WeekDays" class="grid grid-cols-7 gap-1 mt-4"></div>
+      </section>
+
+      <section class="v2-card">
+        <div class="font-black">Haftalık Grup Liderliği</div>
+        <div class="text-xs v1-muted mt-1">Son 7 gündeki tamamlanan vakitler</div>
+        <div id="v2WeeklyRanking" class="space-y-2 mt-3"></div>
+      </section>
+
       <section class="v1-card p-4">
         <div class="flex items-center justify-between gap-3">
           <div><div class="font-black">Son 7 Gün</div><div class="text-xs v1-muted mt-1">Kişisel günlük ilerlemen</div></div>
@@ -621,7 +652,7 @@ a{color:var(--gold-soft)}
 
     <div id="settingsPage" class="v1-page space-y-4">
       <section class="v1-card p-5">
-        <div class="v1-section-title">AYARLAR</div>
+        <div class="v1-section-title">NAMAZ TAKİP V2</div>
         <div class="mt-2 flex items-center justify-between gap-3">
           <h2 class="text-2xl font-black">Uygulama Ayarları</h2>
           <span id="sessionBadge" class="session-badge">Oturum aktif</span>
@@ -1022,7 +1053,53 @@ async function loadHistoryStats(c){
   renderStatsPage();
 }
 
+
+function v2RowsForDate(date,memberId){
+  return state.historyPrayers.filter(x=>x.prayer_date===date && x.member_id===memberId &&
+    (x.status==="done"||x.done));
+}
+function v2DoneForDate(date,memberId){
+  const keys=new Set(v2RowsForDate(date,memberId).map(x=>x.prayer));
+  return PRAYERS.filter(p=>keys.has(p.key)).length;
+}
+function v2Streak(memberId){
+  let streak=0;
+  for(let i=0;i<365;i++){
+    const date=localDateOffset(-i);
+    if(v2DoneForDate(date,memberId)===5) streak++;
+    else break;
+  }
+  return streak;
+}
+function renderV2Stats(){
+  const me=myMember(), id=me?.id;
+  const streak=id?v2Streak(id):0;
+  if($("v2Streak"))$("v2Streak").textContent=String(streak);
+
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const date=localDateOffset(-i);
+    const done=id?v2DoneForDate(date,id):0;
+    const label=new Intl.DateTimeFormat("tr-TR",{weekday:"short"}).format(new Date(`${date}T12:00:00`)).replace(".","");
+    days.push({date,done,label});
+  }
+  if($("v2WeekDays"))$("v2WeekDays").innerHTML=days.map(x=>{
+    const cls=x.done===5?"done":x.done>0?"partial":"";
+    return `<div class="v2-day ${cls}"><div class="text-[10px] v1-muted">${x.label}</div><div class="font-black mt-1">${x.done}/5</div></div>`;
+  }).join("");
+
+  const ranked=state.members.map(m=>{
+    let total=0;
+    for(let i=0;i<7;i++)total+=v2DoneForDate(localDateOffset(-i),m.id);
+    return {m,total};
+  }).sort((a,b)=>b.total-a.total || a.m.name.localeCompare(b.m.name,"tr"));
+  if($("v2WeeklyRanking"))$("v2WeeklyRanking").innerHTML=ranked.length
+    ?ranked.map((x,i)=>`<div class="v2-rank"><div class="flex items-center gap-3 min-w-0"><div class="v2-medal">${i+1}</div><div class="font-bold truncate">${esc(x.m.name)}${x.m.user_id===state.user?.id?' <span class="v1-gold text-[10px]">(sen)</span>':""}</div></div><div class="font-black v1-gold">${x.total}/35</div></div>`).join("")
+    :`<div class="text-sm v1-muted">Henüz haftalık veri yok.</div>`;
+}
+
 function renderStatsPage(){
+  renderV2Stats();
   const me=myMember();
   const mine=me?PRAYERS.filter(p=>statusOf(me.id,p.key)==="done").length:0;
   const total=state.members.length*5;
