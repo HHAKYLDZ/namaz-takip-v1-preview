@@ -620,6 +620,21 @@ a{color:var(--gold-soft)}
           <div id="settingsCityStatus" class="text-xs v1-muted mt-2"></div>
         </div>
         <button id="settingsNotify" class="settings-action w-full">Bildirimleri Aç / Yenile</button>
+        <div class="settings-row mt-3">
+          <div class="font-black">Namaz Bildirimleri</div>
+          <div class="text-xs v1-muted mt-1">Bildirim izni ve tercihlerin bu cihazda saklanır.</div>
+          <div class="mt-3 space-y-2">
+            <label class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-3">
+              <span class="text-sm font-bold">Vakit yaklaşınca bildir</span>
+              <input id="notifyPrayerToggle" type="checkbox" class="h-5 w-5">
+            </label>
+            <label class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-3">
+              <span class="text-sm font-bold">Grup değişikliklerini bildir</span>
+              <input id="notifyGroupToggle" type="checkbox" class="h-5 w-5">
+            </label>
+          </div>
+          <div id="notifySettingsStatus" class="text-xs v1-muted mt-2"></div>
+        </div>
       </section>
 
       <section class="v1-card p-4 install-box">
@@ -870,6 +885,10 @@ function queueRealtimeRefresh(c){
   clearTimeout(state.realtimeTimer);
   state.realtimeTimer=setTimeout(async()=>{
     try{
+      const notify=getNotifyPrefs();
+      if(notify.group!==false && "Notification" in window && Notification.permission==="granted"){
+        try{new Notification("Namaz Takip",{body:"Grubunda yeni bir değişiklik oldu."})}catch{}
+      }
       await loadData(c);
       try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş istatistikleri yenilenemedi:",e)}
       renderGroupPage();
@@ -971,7 +990,25 @@ function renderStatsPage(){
   }).join("");
 }
 
+
+function getNotifyPrefs(){
+  try{return JSON.parse(localStorage.getItem("nt_notify_prefs")||"{}")}catch{return {}}
+}
+function saveNotifyPrefs(p){
+  localStorage.setItem("nt_notify_prefs",JSON.stringify(p));
+}
+function renderNotifyPrefs(){
+  const p=getNotifyPrefs();
+  if($("notifyPrayerToggle"))$("notifyPrayerToggle").checked=p.prayer!==false;
+  if($("notifyGroupToggle"))$("notifyGroupToggle").checked=p.group!==false;
+  if($("notifySettingsStatus")){
+    const perm=("Notification" in window)?Notification.permission:"unsupported";
+    $("notifySettingsStatus").textContent=perm==="granted"?"Bildirim izni açık.":"Bildirim izni henüz açık değil.";
+  }
+}
+
 function renderSettingsPage(){
+  renderNotifyPrefs();
   const name=state.myName||"—";
   if($("settingsName"))$("settingsName").textContent=name;
   if($("settingsNamePreview"))$("settingsNamePreview").textContent=name;
@@ -1142,6 +1179,12 @@ $("settingsCitySave").onclick=async()=>{
   renderSettingsPage();
 };
 $("settingsNotify").onclick=async()=>{await enableNotifications();renderSettingsPage()};
+$("notifyPrayerToggle").onchange=()=>{
+  const p=getNotifyPrefs();p.prayer=$("notifyPrayerToggle").checked;saveNotifyPrefs(p);renderNotifyPrefs();
+};
+$("notifyGroupToggle").onchange=()=>{
+  const p=getNotifyPrefs();p.group=$("notifyGroupToggle").checked;saveNotifyPrefs(p);renderNotifyPrefs();
+};
 $("settingsLeaveGroup").onclick=()=>{
   if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){
     localStorage.removeItem("nt_group");
