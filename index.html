@@ -367,6 +367,10 @@ a{color:var(--gold-soft)}
 .profile-input{background:#071510!important}
 .install-box{background:linear-gradient(145deg,rgba(33,201,151,.10),rgba(214,180,92,.07));border:1px solid rgba(33,201,151,.22);border-radius:20px;padding:14px}
 
+
+.live-dot{width:8px;height:8px;border-radius:999px;background:#21c997;display:inline-block;box-shadow:0 0 0 4px rgba(33,201,151,.10)}
+.live-dot.off{background:#94a3b8;box-shadow:none}
+
 </style>
 
 </head>
@@ -496,7 +500,10 @@ a{color:var(--gold-soft)}
             <h2 id="groupPageName" class="text-2xl font-black truncate">Grup</h2>
             <p class="mt-1 text-sm v1-muted">Arkadaşlarını davet et ve grubunun durumunu takip et.</p>
           </div>
-          <div id="groupPageCount" class="v1-gold text-sm font-black whitespace-nowrap">0 kişi</div>
+          <div class="text-right">
+            <div id="groupPageCount" class="v1-gold text-sm font-black whitespace-nowrap">0 kişi</div>
+            <div class="mt-1 text-[10px] v1-muted flex items-center justify-end gap-1"><span id="groupLiveDot" class="live-dot"></span><span id="groupLiveText">Canlı</span></div>
+          </div>
         </div>
       </section>
 
@@ -508,7 +515,10 @@ a{color:var(--gold-soft)}
           <button id="copyGroupCode" class="group-action">Kodu Kopyala</button>
           <button id="shareGroupCode" class="group-action">Paylaş</button>
         </div>
-        <div id="groupActionStatus" class="mt-2 min-h-[18px] text-xs v1-muted"></div>
+        <div class="flex items-center justify-between gap-2 mt-2">
+          <div id="groupActionStatus" class="min-h-[18px] text-xs v1-muted"></div>
+          <button id="refreshGroupNow" class="text-xs font-black v1-gold">Yenile</button>
+        </div>
       </section>
 
       <section class="v1-card p-4">
@@ -646,7 +656,7 @@ const SUPABASE_URL="https://cpafgcneetegwhcmlnlo.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_5F-jtanB2rI38oX18rXPFQ_-lXbpsJ9";
 const VAPID_PUBLIC_KEY="BDG8Gs3iY3T6gjDRmEApL-LlXPT28SqzBNM6tdQzDgMr9cgajZYzi34mVD-Bw5okvu9v2yxs1vru2Igbm3MvZM8";
 const PRAYERS=[{key:"fajr",name:"Sabah",icon:"☀️",api:"Fajr"},{key:"dhuhr",name:"Öğle",icon:"🌤️",api:"Dhuhr"},{key:"asr",name:"İkindi",icon:"🌥️",api:"Asr"},{key:"maghrib",name:"Akşam",icon:"🌇",api:"Maghrib"},{key:"isha",name:"Yatsı",icon:"🌙",api:"Isha"}];
-const state={user:null,groupCode:localStorage.getItem("nt_group")||"",myName:localStorage.getItem("nt_name")||"",city:localStorage.getItem("nt_city")||"Istanbul",members:[],prayers:[],qada:[],timings:null,groupInfo:null,historyPrayers:[],channel:null,reminderTimer:null,onboardMode:""};
+const state={user:null,groupCode:localStorage.getItem("nt_group")||"",myName:localStorage.getItem("nt_name")||"",city:localStorage.getItem("nt_city")||"Istanbul",members:[],prayers:[],qada:[],timings:null,groupInfo:null,historyPrayers:[],channel:null,realtimeTimer:null,reminderTimer:null,onboardMode:""};
 const $=id=>document.getElementById(id);
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -837,9 +847,29 @@ function renderGroupPage(){
   if($("groupMembersList"))$("groupMembersList").innerHTML=state.members.length?state.members.map(m=>{
     const done=PRAYERS.filter(p=>statusOf(m.id,p.key)==="done").length;
     const mine=m.user_id===state.user?.id;
-    return `<div class="group-member-row"><div class="flex items-center gap-3 min-w-0"><div class="group-avatar">${esc(initials(m.name))}</div><div class="min-w-0"><div class="font-black truncate">${esc(m.name)}${mine?' <span class="v1-gold text-[10px]">(sen)</span>':""}</div><div class="text-xs v1-muted mt-1">${done}/5 vakit tamamlandı</div></div></div><div class="text-sm font-black ${done===5?"text-emerald-400":"v1-muted"}">${done}/5</div></div>`;
+    return `<div class="group-member-row"><div class="flex items-center gap-3 min-w-0"><div class="group-avatar">${esc(initials(m.name))}</div><div class="min-w-0"><div class="font-black truncate">${esc(m.name)}${mine?' <span class="v1-gold text-[10px]">(sen)</span>':""}</div><div class="text-xs v1-muted mt-1">${done===5?"Bugün tamamlandı":done===0?"Henüz vakit tamamlanmadı":`${done}/5 vakit tamamlandı`}</div></div></div><div class="text-sm font-black ${done===5?"text-emerald-400":"v1-muted"}">${done}/5</div></div>`;
   }).join(""):`<div class="text-sm v1-muted py-3">Henüz grup üyesi yok.</div>`;
 }
+
+function markRealtimeLive(on=true){
+  if($("groupLiveDot"))$("groupLiveDot").classList.toggle("off",!on);
+  if($("groupLiveText"))$("groupLiveText").textContent=on?"Canlı":"Bağlantı bekleniyor";
+}
+function queueRealtimeRefresh(c){
+  clearTimeout(state.realtimeTimer);
+  state.realtimeTimer=setTimeout(async()=>{
+    try{
+      await loadData(c);
+      try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş istatistikleri yenilenemedi:",e)}
+      renderGroupPage();
+      markRealtimeLive(true);
+    }catch(e){
+      console.warn("Canlı veri yenileme hatası:",e);
+      markRealtimeLive(false);
+    }
+  },250);
+}
+
 async function loadGroupInfo(c){
   const {data,error}=await c.from("groups").select("id,code,name,owner_user_id").eq("code",state.groupCode).maybeSingle();
   if(error)throw error;
@@ -949,7 +979,11 @@ async function loadTimings(){const city=state.city.trim()||"Istanbul",date=today
 function b64(s){const p="=".repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,"+").replace(/_/g,"/"),r=atob(b);return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))}
 async function savePush(s){const j=s.toJSON(),k=j.keys||{};const {error}=await window.__supabase.from("push_subscriptions").upsert({user_id:state.user.id,group_code:state.groupCode,endpoint:j.endpoint,p256dh:k.p256dh,auth:k.auth,city:state.city||"Istanbul",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Istanbul",updated_at:new Date().toISOString()},{onConflict:"endpoint"});if(error)throw error}
 async function enableNotifications(){if(!("Notification"in window)||!("serviceWorker"in navigator)||!("PushManager"in window))return alert("Bu cihaz Web Push desteklemiyor.");try{if(await Notification.requestPermission()!=="granted")return;const r=await navigator.serviceWorker.ready;let s=await r.pushManager.getSubscription();if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(VAPID_PUBLIC_KEY)});await savePush(s);$("notifyBtn").textContent="Bildirim açık";r.showNotification("Namaz Takip",{body:"Push bildirimleri başarıyla açıldı."})}catch(e){alert("Push bildirimi açılamadı: "+e.message)}}
-async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./service-worker.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName){showSetup();showProfileStep();return}try{await claimMe(c);showMain();await loadData(c);try{await loadGroupInfo(c)}catch(e){console.warn("Grup bilgisi alınamadı:",e)}try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş istatistikleri alınamadı:",e)}await loadTimings();state.channel=c.channel("namaz-takip-"+state.groupCode).on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).subscribe()}catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
+async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./service-worker.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName){showSetup();showProfileStep();return}try{await claimMe(c);showMain();await loadData(c);try{await loadGroupInfo(c)}catch(e){console.warn("Grup bilgisi alınamadı:",e)}try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş istatistikleri alınamadı:",e)}await loadTimings();markRealtimeLive(true);state.channel=c.channel("namaz-takip-"+state.groupCode)
+.on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>queueRealtimeRefresh(c))
+.on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>queueRealtimeRefresh(c))
+.subscribe((status)=>markRealtimeLive(status==="SUBSCRIBED"));
+}catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
 
 setInterval(()=>{if(!$("main").classList.contains("hidden"))updateNextPrayer()},30000);
 
@@ -979,6 +1013,16 @@ $("shareGroupCode").onclick=async()=>{
     else{await navigator.clipboard.writeText(shareData.text);$("groupActionStatus").textContent="Davet bilgisi kopyalandı."}
   }catch(e){if(e?.name!=="AbortError")$("groupActionStatus").textContent="Paylaşım açılamadı. Kodu kopyalayabilirsin."}
 };
+$("refreshGroupNow").onclick=async()=>{
+  try{
+    $("groupActionStatus").textContent="Yenileniyor…";
+    await loadData(window.__supabase);
+    try{await loadHistoryStats(window.__supabase)}catch(e){}
+    renderGroupPage();
+    $("groupActionStatus").textContent="Grup güncellendi.";
+  }catch(e){$("groupActionStatus").textContent="Yenileme başarısız: "+e.message}
+};
+
 
 
 $("profileNext").onclick=showGroupStep;
