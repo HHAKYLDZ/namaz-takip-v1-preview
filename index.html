@@ -326,20 +326,66 @@ a{color:var(--gold-soft)}
   .v1-prayer-name,.v1-prayer-time{font-size:11px}
 }
 
+
+/* ===== V1 İlk Kurulum ===== */
+#setup{background:
+  radial-gradient(520px 280px at 50% -70px,rgba(214,180,92,.14),transparent 70%),
+  linear-gradient(180deg,#07130f 0%,#030907 100%)}
+#setup .glass{box-shadow:0 24px 70px rgba(0,0,0,.28)}
+#chooseCreate,#chooseJoin{background:rgba(255,255,255,.055)!important;border-color:rgba(214,180,92,.20)!important;color:var(--text)!important}
+#chooseCreate.selected,#chooseJoin.selected{background:rgba(33,201,151,.13)!important;border-color:rgba(33,201,151,.58)!important;box-shadow:0 0 0 2px rgba(33,201,151,.08)}
+#profileBack{background:transparent!important}
+
 </style>
 
 </head>
 <body class="text-slate-800 dark:text-slate-100">
 <div id="app">
 <div id="loading" class="min-h-screen grid place-items-center" style="background:linear-gradient(180deg,#06110f,#030907)"><div class="text-center"><img src="./icon-192-v2.png" alt="" class="mx-auto mb-4 h-16 w-16 rounded-[18px] shadow-2xl"><b class="text-xl">Namaz Takip yükleniyor…</b></div></div>
-<section id="setup" class="hidden min-h-screen p-5"><div class="mx-auto max-w-md pt-8">
-<div class="flex items-center gap-3"><img src="./icon-192-v2.png" alt="" class="h-14 w-14 rounded-2xl shadow-xl"><h1 class="text-3xl font-black">Namaz Takip</h1></div><p class="mt-2 text-slate-500">Arkadaş grubunuzla aynı ekranı paylaşın. Herkes yalnızca kendi namazlarını işaretlesin.</p>
-<div class="glass rounded-3xl border p-5 mt-6">
-<label class="block text-sm font-semibold mb-2">Senin adın</label><input id="setupName" maxlength="30" class="w-full rounded-2xl border px-4 py-3" placeholder="Örn. Ahmet">
-<label class="block text-sm font-semibold mt-4 mb-2">Grup kodu</label><input id="setupGroup" maxlength="30" class="w-full rounded-2xl border px-4 py-3 uppercase" placeholder="Örn. DOSTLAR2026">
-<label class="block text-sm font-semibold mt-4 mb-2">Şehir</label><input id="setupCity" maxlength="50" class="w-full rounded-2xl border px-4 py-3" placeholder="Istanbul">
-<button id="setupSave" class="mt-5 w-full rounded-2xl bg-emerald-600 text-white font-bold py-3.5">Gruba Katıl</button>
-<div id="setupError" class="hidden mt-3 text-rose-600 text-sm"></div></div></div></section>
+<section id="setup" class="hidden min-h-screen p-5">
+  <div class="mx-auto max-w-md pt-8 pb-10">
+    <div class="text-center">
+      <img src="./icon-192-v2.png" alt="" class="mx-auto h-20 w-20 rounded-[22px] shadow-2xl">
+      <h1 class="mt-4 text-3xl font-black">Namaz Takip</h1>
+      <p id="setupIntro" class="mt-2 text-sm text-slate-500">İlk kurulumunu birkaç adımda tamamla.</p>
+    </div>
+
+    <div class="glass rounded-3xl border p-5 mt-6">
+      <div id="onboardProfile">
+        <div class="text-xs font-black v1-gold">1 / 2 · PROFİL</div>
+        <h2 class="mt-2 text-xl font-black">Seni nasıl tanıyalım?</h2>
+        <p class="mt-1 text-sm text-slate-500">Bu isim grubundaki arkadaşlarına görünecek.</p>
+        <label class="block text-sm font-semibold mt-5 mb-2">Adın</label>
+        <input id="setupName" maxlength="30" autocomplete="name" class="w-full rounded-2xl border px-4 py-3" placeholder="Örn. Ahmet">
+        <label class="block text-sm font-semibold mt-4 mb-2">Şehir</label>
+        <input id="setupCity" maxlength="50" class="w-full rounded-2xl border px-4 py-3" placeholder="Istanbul">
+        <button id="profileNext" class="mt-5 w-full rounded-2xl bg-emerald-600 text-white font-bold py-3.5">Devam Et</button>
+      </div>
+
+      <div id="onboardGroup" class="hidden">
+        <div class="text-xs font-black v1-gold">2 / 2 · GRUP</div>
+        <h2 class="mt-2 text-xl font-black">Grubunu seç</h2>
+        <p class="mt-1 text-sm text-slate-500">Yeni bir grup oluşturabilir veya davet koduyla mevcut gruba katılabilirsin.</p>
+
+        <div class="mt-5 grid grid-cols-2 gap-2">
+          <button id="chooseCreate" class="rounded-2xl border px-3 py-3 text-sm font-bold">＋ Grup Oluştur</button>
+          <button id="chooseJoin" class="rounded-2xl border px-3 py-3 text-sm font-bold">↗ Gruba Katıl</button>
+        </div>
+
+        <div id="groupForm" class="hidden mt-5">
+          <label id="groupLabelSetup" class="block text-sm font-semibold mb-2">Grup adı</label>
+          <input id="setupGroup" maxlength="30" class="w-full rounded-2xl border px-4 py-3 uppercase" placeholder="Örn. DOSTLAR">
+          <div id="groupHint" class="mt-2 text-xs text-slate-500"></div>
+          <button id="setupSave" class="mt-5 w-full rounded-2xl bg-emerald-600 text-white font-bold py-3.5">Kurulumu Tamamla</button>
+        </div>
+
+        <button id="profileBack" class="mt-4 w-full py-2 text-sm font-bold v1-muted">← Geri</button>
+      </div>
+
+      <div id="setupError" class="hidden mt-3 text-rose-600 text-sm"></div>
+    </div>
+  </div>
+</section>
 <main id="main" class="hidden">
   <div class="v1-topbar">
     <div class="v1-shell px-4 py-3 flex items-center justify-between gap-3">
@@ -438,13 +484,45 @@ const SUPABASE_URL="https://cpafgcneetegwhcmlnlo.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_5F-jtanB2rI38oX18rXPFQ_-lXbpsJ9";
 const VAPID_PUBLIC_KEY="BDG8Gs3iY3T6gjDRmEApL-LlXPT28SqzBNM6tdQzDgMr9cgajZYzi34mVD-Bw5okvu9v2yxs1vru2Igbm3MvZM8";
 const PRAYERS=[{key:"fajr",name:"Sabah",icon:"☀️",api:"Fajr"},{key:"dhuhr",name:"Öğle",icon:"🌤️",api:"Dhuhr"},{key:"asr",name:"İkindi",icon:"🌥️",api:"Asr"},{key:"maghrib",name:"Akşam",icon:"🌇",api:"Maghrib"},{key:"isha",name:"Yatsı",icon:"🌙",api:"Isha"}];
-const state={user:null,groupCode:localStorage.getItem("nt_group")||"",myName:localStorage.getItem("nt_name")||"",city:localStorage.getItem("nt_city")||"Istanbul",members:[],prayers:[],qada:[],timings:null,channel:null,reminderTimer:null};
+const state={user:null,groupCode:localStorage.getItem("nt_group")||"",myName:localStorage.getItem("nt_name")||"",city:localStorage.getItem("nt_city")||"Istanbul",members:[],prayers:[],qada:[],timings:null,channel:null,reminderTimer:null,onboardMode:""};
 const $=id=>document.getElementById(id);
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const initials=n=>n.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
 function setDark(on){document.documentElement.classList.toggle("dark",on);localStorage.setItem("nt_dark",on?"1":"0")} setDark(localStorage.getItem("nt_dark")==="1");
-function showSetup(error=""){$("loading").classList.add("hidden");$("main").classList.add("hidden");$("setup").classList.remove("hidden");$("setupName").value=state.myName;$("setupGroup").value=state.groupCode;$("setupCity").value=state.city;if(error){$("setupError").textContent=error;$("setupError").classList.remove("hidden")}else $("setupError").classList.add("hidden")}
+function showSetup(error=""){
+  $("loading").classList.add("hidden");$("main").classList.add("hidden");$("setup").classList.remove("hidden");
+  $("setupName").value=state.myName;$("setupCity").value=state.city;
+  if(error){$("setupError").textContent=error;$("setupError").classList.remove("hidden")}else $("setupError").classList.add("hidden");
+}
+function setupError(msg){$("setupError").textContent=msg;$("setupError").classList.remove("hidden")}
+function clearSetupError(){$("setupError").classList.add("hidden");$("setupError").textContent=""}
+function showProfileStep(){
+  clearSetupError();$("onboardGroup").classList.add("hidden");$("onboardProfile").classList.remove("hidden");
+}
+function showGroupStep(){
+  clearSetupError();
+  const n=$("setupName").value.trim(), c=$("setupCity").value.trim()||"Istanbul";
+  if(n.length<2)return setupError("Adını en az 2 karakter olarak yaz.");
+  state.myName=n;state.city=c;
+  $("onboardProfile").classList.add("hidden");$("onboardGroup").classList.remove("hidden");
+}
+function chooseGroupMode(mode){
+  state.onboardMode=mode;clearSetupError();$("groupForm").classList.remove("hidden");
+  $("chooseCreate").classList.toggle("selected",mode==="create");$("chooseJoin").classList.toggle("selected",mode==="join");
+  $("setupGroup").value="";
+  if(mode==="create"){
+    $("groupLabelSetup").textContent="Grup adı / kodu";
+    $("setupGroup").placeholder="Örn. DOSTLAR";
+    $("groupHint").textContent="Bu kodu arkadaşlarınla paylaşarak onları grubuna davet edebilirsin.";
+    $("setupSave").textContent="Grubu Oluştur ve Başla";
+  }else{
+    $("groupLabelSetup").textContent="Davet kodu";
+    $("setupGroup").placeholder="Örn. DOSTLAR";
+    $("groupHint").textContent="Grubu oluşturan kişinin paylaştığı kodu yaz.";
+    $("setupSave").textContent="Gruba Katıl ve Başla";
+  }
+}
 function showMain(){$("loading").classList.add("hidden");$("setup").classList.add("hidden");$("main").classList.remove("hidden");$("groupLabel").textContent=state.groupCode;$("todayLabel").textContent=new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium"}).format(new Date());$("cityInput").value=state.city}
 async function ensureAuth(c){const {data:{session}}=await c.auth.getSession();if(session?.user)return session.user;const {data,error}=await c.auth.signInAnonymously();if(error)throw error;return data.user}
 async function claimMe(c){
@@ -525,7 +603,7 @@ async function loadTimings(){const city=state.city.trim()||"Istanbul",date=today
 function b64(s){const p="=".repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,"+").replace(/_/g,"/"),r=atob(b);return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))}
 async function savePush(s){const j=s.toJSON(),k=j.keys||{};const {error}=await window.__supabase.from("push_subscriptions").upsert({user_id:state.user.id,group_code:state.groupCode,endpoint:j.endpoint,p256dh:k.p256dh,auth:k.auth,city:state.city||"Istanbul",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Istanbul",updated_at:new Date().toISOString()},{onConflict:"endpoint"});if(error)throw error}
 async function enableNotifications(){if(!("Notification"in window)||!("serviceWorker"in navigator)||!("PushManager"in window))return alert("Bu cihaz Web Push desteklemiyor.");try{if(await Notification.requestPermission()!=="granted")return;const r=await navigator.serviceWorker.ready;let s=await r.pushManager.getSubscription();if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(VAPID_PUBLIC_KEY)});await savePush(s);$("notifyBtn").textContent="Bildirim açık";r.showNotification("Namaz Takip",{body:"Push bildirimleri başarıyla açıldı."})}catch(e){alert("Push bildirimi açılamadı: "+e.message)}}
-async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./service-worker.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName)return showSetup();try{await claimMe(c);showMain();await loadData(c);await loadTimings();state.channel=c.channel("namaz-takip-"+state.groupCode).on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).subscribe()}catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
+async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./service-worker.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName){showSetup();showProfileStep();return}try{await claimMe(c);showMain();await loadData(c);await loadTimings();state.channel=c.channel("namaz-takip-"+state.groupCode).on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).subscribe()}catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
 
 setInterval(()=>{if(!$("main").classList.contains("hidden"))updateNextPrayer()},30000);
 document.addEventListener("click",e=>{
@@ -534,7 +612,27 @@ document.addEventListener("click",e=>{
   if(tab.dataset.tab!=="home") alert("Bu bölüm Namaz Takip 1.0 geliştirmesinde sıradaki adımlarda eklenecek.");
 });
 
-$("setupSave").onclick=async()=>{const n=$("setupName").value.trim(),g=$("setupGroup").value.trim().toUpperCase(),c=$("setupCity").value.trim()||"Istanbul";if(n.length<2)return showSetup("Adınızı yazın.");if(g.length<3)return showSetup("Grup kodu en az 3 karakter olmalı.");state.myName=n;state.groupCode=g;state.city=c;localStorage.setItem("nt_name",n);localStorage.setItem("nt_group",g);localStorage.setItem("nt_city",c);await start()};
+$("profileNext").onclick=showGroupStep;
+$("profileBack").onclick=showProfileStep;
+$("chooseCreate").onclick=()=>chooseGroupMode("create");
+$("chooseJoin").onclick=()=>chooseGroupMode("join");
+$("setupSave").onclick=async()=>{
+  const n=$("setupName").value.trim(),g=$("setupGroup").value.trim().toUpperCase().replace(/\s+/g,"-"),c=$("setupCity").value.trim()||"Istanbul";
+  if(n.length<2)return setupError("Adını yaz.");
+  if(!state.onboardMode)return setupError("Grup oluştur veya gruba katıl seçeneklerinden birini seç.");
+  if(g.length<3)return setupError(state.onboardMode==="join"?"Geçerli davet kodunu yaz.":"Grup kodu en az 3 karakter olmalı.");
+  const client=window.__supabase;
+  if(state.onboardMode==="join"){
+    try{
+      const {data,error}=await client.from("members").select("id").eq("group_code",g).limit(1);
+      if(error)throw error;
+      if(!data?.length)return setupError("Bu davet koduyla bir grup bulunamadı.");
+    }catch(e){return setupError("Grup kontrol edilemedi: "+e.message)}
+  }
+  state.myName=n;state.groupCode=g;state.city=c;
+  localStorage.setItem("nt_name",n);localStorage.setItem("nt_group",g);localStorage.setItem("nt_city",c);
+  await start();
+};
 $("refreshBtn").onclick=()=>loadData(window.__supabase);$("citySave").onclick=async()=>{const c=$("cityInput").value.trim();if(!c)return;state.city=c;localStorage.setItem("nt_city",c);await loadTimings();const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();if(s)await savePush(s)};$("notifyBtn").onclick=enableNotifications;$("testNotify").onclick=async()=>{if(Notification.permission==="granted")(await navigator.serviceWorker.ready).showNotification("Namaz Takip",{body:"Test bildirimi çalışıyor."})};$("themeBtn").onclick=()=>setDark(!document.documentElement.classList.contains("dark"));$("leaveGroup").onclick=()=>{if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){localStorage.removeItem("nt_group");localStorage.removeItem("nt_name");location.reload()}};$("members").onclick=e=>{const p=e.target.closest(".set-status");if(p)setPrayerStatus(p.dataset.member,p.dataset.prayer,p.dataset.status)};$("qadaList").onclick=e=>{const b=e.target.closest(".qada-decrease");if(b)decreaseQada(b.dataset.prayer)};
 start();
 })();
