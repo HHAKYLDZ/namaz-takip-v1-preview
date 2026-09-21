@@ -362,6 +362,11 @@ a{color:var(--gold-soft)}
 .history-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
 .history-bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#13a477,#21c997)}
 
+
+.profile-badge{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:rgba(33,201,151,.14);color:var(--gold-soft);font-size:18px;font-weight:900;border:1px solid rgba(214,180,92,.20)}
+.profile-input{background:#071510!important}
+.install-box{background:linear-gradient(145deg,rgba(33,201,151,.10),rgba(214,180,92,.07));border:1px solid rgba(33,201,151,.22);border-radius:20px;padding:14px}
+
 </style>
 
 </head>
@@ -573,8 +578,19 @@ a{color:var(--gold-soft)}
 
       <section class="v1-card p-4 space-y-3">
         <div class="settings-row">
-          <label class="block text-xs font-black v1-gold mb-2">GÖRÜNEN ADIN</label>
-          <div id="settingsName" class="font-black">—</div>
+          <div class="flex items-center gap-3">
+            <div id="settingsAvatar" class="profile-badge">—</div>
+            <div class="min-w-0">
+              <div class="text-xs font-black v1-gold">PROFİL</div>
+              <div id="settingsNamePreview" class="font-black mt-1 truncate">—</div>
+            </div>
+          </div>
+          <label for="settingsNameInput" class="block text-xs font-black v1-gold mt-4 mb-2">GÖRÜNEN ADIN</label>
+          <div class="flex gap-2">
+            <input id="settingsNameInput" maxlength="30" class="profile-input min-w-0 flex-1 rounded-2xl border px-4 py-3" placeholder="Adın">
+            <button id="settingsNameSave" class="settings-action shrink-0">Kaydet</button>
+          </div>
+          <div id="settingsNameStatus" class="text-xs v1-muted mt-2"></div>
         </div>
         <div class="settings-row">
           <label for="settingsCity" class="block text-xs font-black v1-gold mb-2">ŞEHİR</label>
@@ -585,6 +601,11 @@ a{color:var(--gold-soft)}
           <div id="settingsCityStatus" class="text-xs v1-muted mt-2"></div>
         </div>
         <button id="settingsNotify" class="settings-action w-full">Bildirimleri Aç / Yenile</button>
+      </section>
+
+      <section class="v1-card p-4 install-box">
+        <div class="font-black">📱 Telefona Uygulama Gibi Ekle</div>
+        <div class="text-xs v1-muted mt-1">Tarayıcının menüsünden “Ana ekrana ekle” veya “Uygulamayı yükle” seçeneğini kullanabilirsin.</div>
       </section>
 
       <section class="v1-card p-4">
@@ -910,7 +931,11 @@ function renderStatsPage(){
 }
 
 function renderSettingsPage(){
-  if($("settingsName"))$("settingsName").textContent=state.myName||"—";
+  const name=state.myName||"—";
+  if($("settingsName"))$("settingsName").textContent=name;
+  if($("settingsNamePreview"))$("settingsNamePreview").textContent=name;
+  if($("settingsNameInput") && document.activeElement!==$("settingsNameInput"))$("settingsNameInput").value=state.myName||"";
+  if($("settingsAvatar"))$("settingsAvatar").textContent=initials(name)||"—";
   if($("settingsCity"))$("settingsCity").value=state.city||"Istanbul";
   if($("settingsCityStatus"))$("settingsCityStatus").textContent=`Namaz vakitleri ${state.city||"Istanbul"} için kullanılıyor.`;
   if($("settingsNotify"))$("settingsNotify").textContent=Notification.permission==="granted"?"Bildirimleri Yenile":"Bildirimleri Aç";
@@ -1033,6 +1058,20 @@ $("setupSave").onclick=async()=>{
   }
 };
 
+$("settingsNameSave").onclick=async()=>{
+  const name=$("settingsNameInput").value.trim();
+  if(name.length<2){$("settingsNameStatus").textContent="Ad en az 2 karakter olmalı.";return}
+  state.myName=name;
+  localStorage.setItem("nt_name",name);
+  $("settingsNameStatus").textContent="Adın güncellendi.";
+  const me=myMember();
+  if(me?.id){
+    const r=await window.__supabase.from("members").update({name}).eq("id",me.id).eq("user_id",state.user.id);
+    if(r.error){$("settingsNameStatus").textContent="Üye adı güncellenemedi: "+r.error.message;return}
+    await loadData(window.__supabase);
+  }
+  renderSettingsPage();
+};
 $("settingsCitySave").onclick=async()=>{
   const city=$("settingsCity").value.trim();
   if(!city)return;
