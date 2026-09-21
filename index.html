@@ -357,6 +357,11 @@ a{color:var(--gold-soft)}
 .settings-row{padding:14px;border-radius:20px;background:rgba(5,24,19,.62);border:1px solid rgba(255,255,255,.08)}
 .settings-action{border:1px solid rgba(214,180,92,.22)!important;background:rgba(255,255,255,.055)!important;color:var(--text)!important;padding:11px 13px;font-size:12px;font-weight:800}
 
+
+.history-row{padding:13px;border-radius:18px;background:rgba(5,24,19,.62);border:1px solid rgba(255,255,255,.08)}
+.history-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.history-bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#13a477,#21c997)}
+
 </style>
 
 </head>
@@ -542,6 +547,21 @@ a{color:var(--gold-soft)}
         <div class="text-xs v1-muted mt-1 mb-3">Bugün tamamlanan vakit sayısına göre</div>
         <div id="statsMembers" class="space-y-2"></div>
       </section>
+      <section class="v1-card p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div><div class="font-black">Son 7 Gün</div><div class="text-xs v1-muted mt-1">Kişisel günlük ilerlemen</div></div>
+          <div id="stats7Total" class="v1-gold font-black">0/35</div>
+        </div>
+        <div id="stats7Days" class="mt-4 space-y-2"></div>
+      </section>
+      <section class="v1-card p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div><div class="font-black">Son 30 Gün</div><div class="text-xs v1-muted mt-1">Toplam kişisel namaz performansı</div></div>
+          <div id="stats30Total" class="v1-gold font-black">0/150</div>
+        </div>
+        <div id="stats30Bar" class="history-bar mt-4"><div style="width:0%"></div></div>
+        <div id="stats30Message" class="text-xs v1-muted mt-2">Veriler yükleniyor.</div>
+      </section>
     </div>
 
     <div id="settingsPage" class="v1-page space-y-4">
@@ -605,7 +625,7 @@ const SUPABASE_URL="https://cpafgcneetegwhcmlnlo.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_5F-jtanB2rI38oX18rXPFQ_-lXbpsJ9";
 const VAPID_PUBLIC_KEY="BDG8Gs3iY3T6gjDRmEApL-LlXPT28SqzBNM6tdQzDgMr9cgajZYzi34mVD-Bw5okvu9v2yxs1vru2Igbm3MvZM8";
 const PRAYERS=[{key:"fajr",name:"Sabah",icon:"☀️",api:"Fajr"},{key:"dhuhr",name:"Öğle",icon:"🌤️",api:"Dhuhr"},{key:"asr",name:"İkindi",icon:"🌥️",api:"Asr"},{key:"maghrib",name:"Akşam",icon:"🌇",api:"Maghrib"},{key:"isha",name:"Yatsı",icon:"🌙",api:"Isha"}];
-const state={user:null,groupCode:localStorage.getItem("nt_group")||"",myName:localStorage.getItem("nt_name")||"",city:localStorage.getItem("nt_city")||"Istanbul",members:[],prayers:[],qada:[],timings:null,groupInfo:null,channel:null,reminderTimer:null,onboardMode:""};
+const state={user:null,groupCode:localStorage.getItem("nt_group")||"",myName:localStorage.getItem("nt_name")||"",city:localStorage.getItem("nt_city")||"Istanbul",members:[],prayers:[],qada:[],timings:null,groupInfo:null,historyPrayers:[],channel:null,reminderTimer:null,onboardMode:""};
 const $=id=>document.getElementById(id);
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -840,6 +860,20 @@ function renderPrayersPage(){
   if($("prayersQadaTotal"))$("prayersQadaTotal").textContent=String(total);
   if($("prayersQadaList"))$("prayersQadaList").innerHTML=PRAYERS.map(p=>`<div class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2"><div><div class="font-bold">${p.icon} ${p.name}</div><div class="text-xs v1-muted">${qadaCount(p.key)} kaza</div></div><button class="qada-page-decrease group-action" data-qada-prayer="${p.key}" ${qadaCount(p.key)<=0?"disabled":""}>1 kaza kıldım</button></div>`).join("");
 }
+
+function localDateOffset(days){
+  const d=new Date();
+  d.setDate(d.getDate()+days);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+async function loadHistoryStats(c){
+  const from=localDateOffset(-29),to=localDateOffset(0);
+  const {data,error}=await c.from("prayers").select("member_id,prayer_date,prayer,done,status").eq("group_code",state.groupCode).gte("prayer_date",from).lte("prayer_date",to);
+  if(error)throw error;
+  state.historyPrayers=data||[];
+  renderStatsPage();
+}
+
 function renderStatsPage(){
   const me=myMember();
   const mine=me?PRAYERS.filter(p=>statusOf(me.id,p.key)==="done").length:0;
@@ -848,9 +882,33 @@ function renderStatsPage(){
   const pct=total?Math.round(done/total*100):0;
   if($("statsMine"))$("statsMine").textContent=`${mine}/5`;
   if($("statsGroup"))$("statsGroup").textContent=`${pct}%`;
+
   const ranked=[...state.members].map(m=>({m,done:PRAYERS.filter(p=>statusOf(m.id,p.key)==="done").length})).sort((a,b)=>b.done-a.done);
   if($("statsMembers"))$("statsMembers").innerHTML=ranked.length?ranked.map((x,i)=>`<div class="group-member-row"><div class="flex items-center gap-3 min-w-0"><div class="group-avatar">${i+1}</div><div class="min-w-0"><div class="font-black truncate">${esc(x.m.name)}${x.m.user_id===state.user?.id?' <span class="v1-gold text-[10px]">(sen)</span>':""}</div><div class="text-xs v1-muted mt-1">Bugünkü ilerleme</div></div></div><div class="font-black v1-gold">${x.done}/5</div></div>`).join(""):`<div class="text-sm v1-muted">Henüz istatistik yok.</div>`;
+
+  const meId=me?.id;
+  const days=[];
+  let total7=0,total30=0;
+  for(let i=29;i>=0;i--){
+    const date=localDateOffset(-i);
+    const rows=state.historyPrayers.filter(x=>x.prayer_date===date && x.member_id===meId);
+    const d=PRAYERS.filter(pr=>rows.some(x=>x.prayer===pr.key && (x.status==="done"||x.done))).length;
+    total30+=d;
+    if(i<7)total7+=d;
+    days.push({date,done:d});
+  }
+  if($("stats7Total"))$("stats7Total").textContent=`${total7}/35`;
+  if($("stats30Total"))$("stats30Total").textContent=`${total30}/150`;
+  const pct30=Math.round(total30/150*100);
+  if($("stats30Bar"))$("stats30Bar").firstElementChild.style.width=`${Math.min(100,pct30)}%`;
+  if($("stats30Message"))$("stats30Message").textContent=meId?`Son 30 günde ${total30} / 150 vakit tamamlandı (${pct30}%).`:"Üyelik bilgisi bulunamadı.";
+  if($("stats7Days"))$("stats7Days").innerHTML=days.slice(-7).map(x=>{
+    const label=new Intl.DateTimeFormat("tr-TR",{weekday:"short",day:"numeric",month:"short"}).format(new Date(`${x.date}T12:00:00`));
+    const width=x.done/5*100;
+    return `<div class="history-row"><div class="flex items-center justify-between gap-3"><div class="text-sm font-bold">${label}</div><div class="text-xs font-black v1-gold">${x.done}/5</div></div><div class="history-bar mt-2"><div style="width:${width}%"></div></div></div>`;
+  }).join("");
 }
+
 function renderSettingsPage(){
   if($("settingsName"))$("settingsName").textContent=state.myName||"—";
   if($("settingsCity"))$("settingsCity").value=state.city||"Istanbul";
@@ -866,7 +924,7 @@ async function loadTimings(){const city=state.city.trim()||"Istanbul",date=today
 function b64(s){const p="=".repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,"+").replace(/_/g,"/"),r=atob(b);return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))}
 async function savePush(s){const j=s.toJSON(),k=j.keys||{};const {error}=await window.__supabase.from("push_subscriptions").upsert({user_id:state.user.id,group_code:state.groupCode,endpoint:j.endpoint,p256dh:k.p256dh,auth:k.auth,city:state.city||"Istanbul",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Istanbul",updated_at:new Date().toISOString()},{onConflict:"endpoint"});if(error)throw error}
 async function enableNotifications(){if(!("Notification"in window)||!("serviceWorker"in navigator)||!("PushManager"in window))return alert("Bu cihaz Web Push desteklemiyor.");try{if(await Notification.requestPermission()!=="granted")return;const r=await navigator.serviceWorker.ready;let s=await r.pushManager.getSubscription();if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(VAPID_PUBLIC_KEY)});await savePush(s);$("notifyBtn").textContent="Bildirim açık";r.showNotification("Namaz Takip",{body:"Push bildirimleri başarıyla açıldı."})}catch(e){alert("Push bildirimi açılamadı: "+e.message)}}
-async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./service-worker.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName){showSetup();showProfileStep();return}try{await claimMe(c);showMain();await loadData(c);try{await loadGroupInfo(c)}catch(e){console.warn("Grup bilgisi alınamadı:",e)}await loadTimings();state.channel=c.channel("namaz-takip-"+state.groupCode).on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).subscribe()}catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
+async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./service-worker.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName){showSetup();showProfileStep();return}try{await claimMe(c);showMain();await loadData(c);try{await loadGroupInfo(c)}catch(e){console.warn("Grup bilgisi alınamadı:",e)}try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş istatistikleri alınamadı:",e)}await loadTimings();state.channel=c.channel("namaz-takip-"+state.groupCode).on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>loadData(c)).subscribe()}catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
 
 setInterval(()=>{if(!$("main").classList.contains("hidden"))updateNextPrayer()},30000);
 
@@ -999,7 +1057,7 @@ $("settingsLeaveGroup").onclick=()=>{
   }
 };
 
-$("refreshBtn").onclick=()=>loadData(window.__supabase);$("citySave").onclick=async()=>{const c=$("cityInput").value.trim();if(!c)return;state.city=c;localStorage.setItem("nt_city",c);await loadTimings();const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();if(s)await savePush(s)};$("notifyBtn").onclick=enableNotifications;$("testNotify").onclick=async()=>{if(Notification.permission==="granted")(await navigator.serviceWorker.ready).showNotification("Namaz Takip",{body:"Test bildirimi çalışıyor."})};$("themeBtn").onclick=()=>setDark(!document.documentElement.classList.contains("dark"));$("leaveGroup").onclick=()=>{if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){localStorage.removeItem("nt_group");localStorage.removeItem("nt_name");location.reload()}};$("members").onclick=e=>{const p=e.target.closest(".set-status");if(p)setPrayerStatus(p.dataset.member,p.dataset.prayer,p.dataset.status)};$("qadaList").onclick=e=>{const b=e.target.closest(".qada-decrease");if(b)decreaseQada(b.dataset.prayer)};
+$("refreshBtn").onclick=async()=>{await loadData(window.__supabase);try{await loadHistoryStats(window.__supabase)}catch(e){console.warn(e)}};$("citySave").onclick=async()=>{const c=$("cityInput").value.trim();if(!c)return;state.city=c;localStorage.setItem("nt_city",c);await loadTimings();const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();if(s)await savePush(s)};$("notifyBtn").onclick=enableNotifications;$("testNotify").onclick=async()=>{if(Notification.permission==="granted")(await navigator.serviceWorker.ready).showNotification("Namaz Takip",{body:"Test bildirimi çalışıyor."})};$("themeBtn").onclick=()=>setDark(!document.documentElement.classList.contains("dark"));$("leaveGroup").onclick=()=>{if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){localStorage.removeItem("nt_group");localStorage.removeItem("nt_name");location.reload()}};$("members").onclick=e=>{const p=e.target.closest(".set-status");if(p)setPrayerStatus(p.dataset.member,p.dataset.prayer,p.dataset.status)};$("qadaList").onclick=e=>{const b=e.target.closest(".qada-decrease");if(b)decreaseQada(b.dataset.prayer)};
 start();
 })();
 </script>
