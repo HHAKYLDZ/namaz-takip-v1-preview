@@ -389,6 +389,11 @@ a{color:var(--gold-soft)}
 .app-toast.error{border-color:rgba(244,114,94,.45)}
 .busy{opacity:.65!important;pointer-events:none!important}
 
+
+.final-status{font-size:11px;line-height:1.45}
+.session-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;border:1px solid rgba(33,201,151,.22);background:rgba(33,201,151,.08);font-size:10px;font-weight:900}
+.danger-action{border:1px solid rgba(244,114,94,.30)!important;background:rgba(244,114,94,.07)!important;color:#f4a090!important}
+
 </style>
 
   <meta name="theme-color" content="#06150f">
@@ -617,7 +622,10 @@ a{color:var(--gold-soft)}
     <div id="settingsPage" class="v1-page space-y-4">
       <section class="v1-card p-5">
         <div class="v1-section-title">AYARLAR</div>
-        <h2 class="mt-2 text-2xl font-black">Uygulama Ayarları</h2>
+        <div class="mt-2 flex items-center justify-between gap-3">
+          <h2 class="text-2xl font-black">Uygulama Ayarları</h2>
+          <span id="sessionBadge" class="session-badge">Oturum aktif</span>
+        </div>
         <p class="mt-1 text-sm v1-muted">Profil, şehir, bildirim ve grup bağlantını yönet.</p>
       </section>
 
@@ -668,6 +676,16 @@ a{color:var(--gold-soft)}
         <div class="text-xs v1-muted mt-1">Kurulum destekleniyorsa aşağıdaki buton görünür. iPhone/iPad'de Safari paylaş menüsünden “Ana Ekrana Ekle” kullanılabilir.</div>
         <button id="installPwaBtn" class="pwa-install-btn w-full mt-3 hidden">Uygulamayı Yükle</button>
         <div id="installPwaStatus" class="text-xs v1-muted mt-2"></div>
+      </section>
+
+      <section class="v1-card p-4">
+        <div class="font-black">Oturum ve Cihaz</div>
+        <div id="sessionInfo" class="text-xs v1-muted mt-1">Oturum bilgisi hazırlanıyor.</div>
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <button id="settingsReload" class="settings-action">Verileri Yenile</button>
+          <button id="settingsReset" class="settings-action danger-action">Kurulumu Sıfırla</button>
+        </div>
+        <div id="settingsSessionStatus" class="final-status text-xs v1-muted mt-2"></div>
       </section>
 
       <section class="v1-card p-4">
@@ -1056,6 +1074,17 @@ function renderNotifyPrefs(){
   }
 }
 
+
+async function refreshAllData(){
+  const c=window.__supabase;
+  if(!c)return;
+  await loadData(c);
+  try{await loadGroupInfo(c)}catch(e){console.warn("Grup bilgisi:",e)}
+  try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş:",e)}
+  render();
+  toast("Veriler güncellendi.");
+}
+
 function renderSettingsPage(){
   renderNotifyPrefs();
   const name=state.myName||"—";
@@ -1064,7 +1093,10 @@ function renderSettingsPage(){
   if($("settingsAvatar"))$("settingsAvatar").textContent=initials(name)||"—";
   if($("settingsCity"))$("settingsCity").value=state.city||"Istanbul";
   if($("settingsCityStatus"))$("settingsCityStatus").textContent=`Namaz vakitleri ${state.city||"Istanbul"} için kullanılıyor.`;
-  if($("settingsNotify"))$("settingsNotify").textContent=Notification.permission==="granted"?"Bildirimleri Yenile":"Bildirimleri Aç";
+  if($("settingsNotify"))$("settingsNotify").textContent=("Notification" in window && Notification.permission==="granted")?"Bildirimleri Yenile":"Bildirimleri Aç";
+  const uid=state.user?.id||"—";
+  if($("sessionInfo"))$("sessionInfo").textContent=`Kullanıcı oturumu aktif · ${uid.slice(0,8)}${uid!=="—"?"…":""}`;
+  if($("sessionBadge"))$("sessionBadge").textContent=state.user?"Oturum aktif":"Oturum bekleniyor";
 }
 
 
@@ -1096,7 +1128,10 @@ async function enableNotifications(){if(!("Notification"in window)||!("serviceWo
 async function start(){if("serviceWorker"in navigator)try{await navigator.serviceWorker.register("./sw.js",{scope:"./"})}catch{};const c=window.__supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);try{state.user=await ensureAuth(c)}catch(e){return showSetup("Bağlantı kurulamadı: "+e.message)}if(!state.groupCode||!state.myName){showSetup();showProfileStep();return}try{await claimMe(c);showMain();await loadData(c);try{await loadGroupInfo(c)}catch(e){console.warn("Grup bilgisi alınamadı:",e)}try{await loadHistoryStats(c)}catch(e){console.warn("Geçmiş istatistikleri alınamadı:",e)}await loadTimings();markRealtimeLive(true);state.channel=c.channel("namaz-takip-"+state.groupCode)
 .on("postgres_changes",{event:"*",schema:"public",table:"members",filter:`group_code=eq.${state.groupCode}`},()=>queueRealtimeRefresh(c))
 .on("postgres_changes",{event:"*",schema:"public",table:"prayers",filter:`group_code=eq.${state.groupCode}`},()=>queueRealtimeRefresh(c))
-.subscribe((status)=>markRealtimeLive(status==="SUBSCRIBED"));
+.subscribe((status)=>{
+  markRealtimeLive(status==="SUBSCRIBED");
+  if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")toast("Canlı bağlantı koptu; yenileme yapılacak.",true);
+});
 }catch(e){showSetup("Gruba bağlanırken hata: "+e.message)}}
 
 setInterval(()=>{if(!$("main").classList.contains("hidden"))updateNextPrayer()},30000);
@@ -1284,6 +1319,26 @@ $("settingsNameSave").onclick=async()=>{
   }
   renderSettingsPage();
 };
+
+$("settingsReload").onclick=async()=>{
+  const btn=$("settingsReload");
+  try{
+    setBusy(btn,true,"Yükleniyor…");
+    await refreshAllData();
+    if($("settingsSessionStatus"))$("settingsSessionStatus").textContent="Veriler yenilendi.";
+  }catch(e){
+    const msg=safeError(e);
+    if($("settingsSessionStatus"))$("settingsSessionStatus").textContent=msg;
+    toast(msg,true);
+  }finally{setBusy(btn,false)}
+};
+$("settingsReset").onclick=()=>{
+  if(!confirm("Bu cihazdaki profil ve grup bağlantısı sıfırlansın mı?"))return;
+  ["nt_group","nt_group_id","nt_name","nt_city","nt_notify_prefs"].forEach(k=>localStorage.removeItem(k));
+  toast("Kurulum sıfırlanıyor…");
+  setTimeout(()=>location.reload(),450);
+};
+
 $("settingsCitySave").onclick=async()=>{
   const city=$("settingsCity").value.trim();
   if(!city)return;
@@ -1342,6 +1397,12 @@ if("serviceWorker" in navigator){
     if(!navigator.onLine)toast("Çevrimdışısın. Kayıtlar yeniden bağlantıda güncellenecek.",true);
 });
 }
+
+
+setInterval(()=>{
+  if(document.hidden || !state.groupCode || !window.__supabase)return;
+  refreshAllData().catch(e=>console.warn("Periyodik yenileme:",e));
+}, 120000);
 
 </script>
 <div id="appToast" class="app-toast"></div>
