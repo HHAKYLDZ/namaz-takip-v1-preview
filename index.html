@@ -371,8 +371,17 @@ a{color:var(--gold-soft)}
 .live-dot{width:8px;height:8px;border-radius:999px;background:#21c997;display:inline-block;box-shadow:0 0 0 4px rgba(33,201,151,.10)}
 .live-dot.off{background:#94a3b8;box-shadow:none}
 
+
+.pwa-install-btn{border:1px solid rgba(33,201,151,.32)!important;background:rgba(33,201,151,.10)!important;color:var(--text)!important;padding:11px 13px;font-size:12px;font-weight:900}
+
 </style>
 
+  <meta name="theme-color" content="#06150f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Namaz Takip">
+  <link rel="manifest" href="./manifest.json">
 </head>
 <body class="text-slate-800 dark:text-slate-100">
 <div id="app">
@@ -615,7 +624,9 @@ a{color:var(--gold-soft)}
 
       <section class="v1-card p-4 install-box">
         <div class="font-black">📱 Telefona Uygulama Gibi Ekle</div>
-        <div class="text-xs v1-muted mt-1">Tarayıcının menüsünden “Ana ekrana ekle” veya “Uygulamayı yükle” seçeneğini kullanabilirsin.</div>
+        <div class="text-xs v1-muted mt-1">Kurulum destekleniyorsa aşağıdaki buton görünür. iPhone/iPad'de Safari paylaş menüsünden “Ana Ekrana Ekle” kullanılabilir.</div>
+        <button id="installPwaBtn" class="pwa-install-btn w-full mt-3 hidden">Uygulamayı Yükle</button>
+        <div id="installPwaStatus" class="text-xs v1-muted mt-2"></div>
       </section>
 
       <section class="v1-card p-4">
@@ -1143,5 +1154,28 @@ $("settingsLeaveGroup").onclick=()=>{
 $("refreshBtn").onclick=async()=>{await loadData(window.__supabase);try{await loadHistoryStats(window.__supabase)}catch(e){console.warn(e)}};$("citySave").onclick=async()=>{const c=$("cityInput").value.trim();if(!c)return;state.city=c;localStorage.setItem("nt_city",c);await loadTimings();const r=await navigator.serviceWorker?.ready,s=await r?.pushManager?.getSubscription();if(s)await savePush(s)};$("notifyBtn").onclick=enableNotifications;$("testNotify").onclick=async()=>{if(Notification.permission==="granted")(await navigator.serviceWorker.ready).showNotification("Namaz Takip",{body:"Test bildirimi çalışıyor."})};$("themeBtn").onclick=()=>setDark(!document.documentElement.classList.contains("dark"));$("leaveGroup").onclick=()=>{if(confirm("Bu cihazdaki grup bağlantısı silinsin mi?")){localStorage.removeItem("nt_group");localStorage.removeItem("nt_name");location.reload()}};$("members").onclick=e=>{const p=e.target.closest(".set-status");if(p)setPrayerStatus(p.dataset.member,p.dataset.prayer,p.dataset.status)};$("qadaList").onclick=e=>{const b=e.target.closest(".qada-decrease");if(b)decreaseQada(b.dataset.prayer)};
 start();
 })();
+
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  $("installPwaBtn")?.classList.remove("hidden");
+});
+$("installPwaBtn")?.addEventListener("click",async()=>{
+  if(!deferredInstallPrompt)return;
+  deferredInstallPrompt.prompt();
+  const result=await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  $("installPwaBtn")?.classList.add("hidden");
+  if($("installPwaStatus"))$("installPwaStatus").textContent=result.outcome==="accepted"?"Uygulama kuruluyor.":"Kurulum iptal edildi.";
+});
+window.addEventListener("appinstalled",()=>{
+  $("installPwaBtn")?.classList.add("hidden");
+  if($("installPwaStatus"))$("installPwaStatus").textContent="Namaz Takip telefona kuruldu.";
+});
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(e=>console.warn("PWA service worker:",e)));
+}
+
 </script>
 </body></html>
